@@ -26,6 +26,7 @@ const CATEGORIES: { kind: PoolKind; label: string }[] = [
   { kind: "faction", label: "Factions" },
   { kind: "quest", label: "Quests" },
   { kind: "recap", label: "Recaps" },
+  { kind: "session", label: "Sessions" },
 ];
 
 const KIND_LABEL: Record<string, string> = Object.fromEntries(

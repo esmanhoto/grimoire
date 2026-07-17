@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+from datetime import datetime
 from pathlib import Path
 
 import uvicorn
@@ -120,6 +121,33 @@ async def campaign_entity(entity_id: str) -> dict:
     if entity is None:
         raise HTTPException(status_code=404, detail=f"no entity '{entity_id}'")
     return entity
+
+
+@app.get("/api/session/active")
+async def session_active() -> dict:
+    return {"session": campaign.active_session()}
+
+
+@app.post("/api/campaign/{entity_id}/arm")
+async def session_arm(entity_id: str) -> dict:
+    try:
+        return campaign.arm_session(entity_id)
+    except CampaignError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+class NoteAdd(BaseModel):
+    text: str
+
+
+@app.post("/api/session/active/notes")
+async def session_add_note(req: NoteAdd) -> dict:
+    active = campaign.active_session()
+    if active is None:
+        raise HTTPException(status_code=400, detail="no armed session")
+    notes = list(active["fields"].get("notes") or [])
+    notes.append({"time": datetime.now().strftime("%H:%M"), "text": req.text.strip()})
+    return campaign.update(active["id"], fields={"notes": notes})
 
 
 @app.post("/api/campaign")

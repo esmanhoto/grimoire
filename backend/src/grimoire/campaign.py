@@ -27,6 +27,7 @@ TYPE_DIRS = {
     "quest": "quests",
     "recap": "recaps",
     "pc": "pcs",
+    "session": "sessions",
 }
 
 WIKILINK = re.compile(r"\[\[([^\]|]+)(?:\|[^\]]*)?\]\]")
@@ -147,6 +148,19 @@ class CampaignStore:
 
     def party(self) -> list[dict[str, Any]]:
         return [e for e in self._all() if e["type"] == "pc"]
+
+    def active_session(self) -> dict[str, Any] | None:
+        armed = [e for e in self._all() if e["type"] == "session" and e["fields"].get("status") == "armed"]
+        return self.get(armed[0]["id"]) if armed else None
+
+    def arm_session(self, entity_id: str) -> dict[str, Any]:
+        target = self.get(entity_id)
+        if target is None or target["type"] != "session":
+            raise CampaignError(f"'{entity_id}' is not a session")
+        for e in self._all():
+            if e["type"] == "session" and e["fields"].get("status") == "armed" and e["id"] != entity_id:
+                self.update(e["id"], fields={"status": "draft"})
+        return self.update(entity_id, fields={"status": "armed"})
 
     # -- mutations -----------------------------------------------------------
 

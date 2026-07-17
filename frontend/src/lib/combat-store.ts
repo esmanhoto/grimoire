@@ -177,19 +177,57 @@ export function usePlayerCombat(): PlayerCombatState {
   return useSyncExternalStore(playerCombat.subscribe, playerCombat.getSnapshot);
 }
 
+function pcCombatant(p: Character) {
+  return {
+    name: p.name,
+    kind: "pc",
+    ac: p.ac,
+    hp: p.hp,
+    maxHp: p.maxHp,
+    tempHp: p.tempHp ?? 0,
+    initiativeBonus: p.initiativeBonus,
+    ref: p.id,
+  };
+}
+
 /** Start combat with the whole party in the tracker; players type their own
  * initiative from their phones, monsters get added (and auto-rolled) ad hoc. */
 export function startCombatWithParty(party: Character[]): void {
-  dmCombat.send("start_combat", {
-    combatants: party.map((p) => ({
-      name: p.name,
-      kind: "pc",
-      ac: p.ac,
-      hp: p.hp,
-      maxHp: p.maxHp,
-      tempHp: p.tempHp ?? 0,
-      initiativeBonus: p.initiativeBonus,
-      ref: p.id,
-    })),
-  });
+  dmCombat.send("start_combat", { combatants: party.map(pcCombatant) });
+}
+
+/** Start combat from the armed session's prep: party + prepped monsters.
+ * Monster stats come from the content store; the server rolls initiative
+ * and auto-numbers duplicates. */
+export async function startPreppedCombat(
+  party: Character[],
+  monsters: { ref: string; name: string; count: number }[],
+): Promise<void> {
+  const { fetchContentEntry } = await import("./content");
+  const combatants: Record<string, unknown>[] = party.map(pcCombatant);
+  for (const m of monsters) {
+    try {
+      const full = await fetchContentEntry<{
+        name: string;
+        ac: number;
+        hp: number;
+        initiativeBonus: number;
+        id: string;
+      }>("monster", m.ref);
+      for (let i = 0; i < m.count; i++) {
+        combatants.push({
+          name: full.name,
+          kind: "monster",
+          ac: full.ac,
+          hp: full.hp,
+          maxHp: full.hp,
+          initiativeBonus: full.initiativeBonus,
+          ref: full.id,
+        });
+      }
+    } catch {
+      // prepped monster no longer resolvable (homebrew removed etc.) — skip it
+    }
+  }
+  dmCombat.send("start_combat", { combatants });
 }

@@ -14,9 +14,10 @@ import {
 } from "@/components/ui/popover";
 import { conditions as CONDITIONS, spellEffects as SPELL_EFFECTS } from "@/lib/mock-data";
 import {
-  useDmCombat, dmCombat, startCombatWithParty, sortCombatants, type Effect,
+  useDmCombat, dmCombat, startCombatWithParty, startPreppedCombat, sortCombatants, type Effect,
 } from "@/lib/combat-store";
 import { useParty } from "@/lib/campaign";
+import { useActiveSession } from "@/lib/session";
 import {
   useContentIndex, fuzzySearch, fetchContentEntry, type MonsterEntry,
 } from "@/lib/content";
@@ -35,6 +36,7 @@ export function CombatTracker({
 }) {
   const state = useDmCombat();
   const party = useParty();
+  const session = useActiveSession();
   const sorted = sortCombatants(state.combatants);
   const activeId = state.turnId ?? sorted[0]?.id ?? null;
 
@@ -48,18 +50,31 @@ export function CombatTracker({
   };
 
   if (!state.active) {
+    const prepped = session?.monsters ?? [];
+    const preppedCount = prepped.reduce((n, m) => n + m.count, 0);
     return (
       <Panel title="Combat" icon={<Swords className="w-4 h-4" />} accent="ember">
         <div className="flex flex-col items-center gap-3 py-8 text-center">
           <p className="text-sm text-muted-foreground max-w-xs">
             No combat running. Pull the party into the tracker, then add monsters as they appear.
           </p>
-          <Button
-            onClick={() => startCombatWithParty(party)}
-            className="bg-arcane text-primary-foreground shadow-arcane gap-2 font-semibold tracking-wide"
-          >
-            <Swords className="w-4 h-4" /> Roll Initiative
-          </Button>
+          <div className="flex flex-wrap justify-center gap-2">
+            <Button
+              onClick={() => startCombatWithParty(party)}
+              className="bg-arcane text-primary-foreground shadow-arcane gap-2 font-semibold tracking-wide"
+            >
+              <Swords className="w-4 h-4" /> Roll Initiative
+            </Button>
+            {preppedCount > 0 && (
+              <Button
+                onClick={() => void startPreppedCombat(party, prepped)}
+                variant="outline"
+                className="gap-2 border-primary/40 text-gold hover:bg-primary/10"
+              >
+                <Skull className="w-4 h-4" /> Load Prepped Encounter ({preppedCount})
+              </Button>
+            )}
+          </div>
         </div>
       </Panel>
     );

@@ -4,7 +4,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { marked } from "marked";
 
-export type EntityType = "npc" | "location" | "faction" | "quest" | "recap" | "pc";
+export type EntityType = "npc" | "location" | "faction" | "quest" | "recap" | "pc" | "session";
 
 export type CampaignIndexEntry = {
   id: string;
@@ -57,6 +57,7 @@ export const TYPE_LABEL: Record<EntityType, string> = {
   quest: "Quest",
   recap: "Session Recap",
   pc: "Player Character",
+  session: "Session",
 };
 
 export function entitySubline(e: { type: EntityType; fields: Record<string, unknown> }): string {
@@ -74,6 +75,8 @@ export function entitySubline(e: { type: EntityType; fields: Record<string, unkn
       return String(f.date ?? "Recap");
     case "pc":
       return `${f.race ?? ""} ${f.class ?? ""} ${f.level ?? ""}`.trim() || "PC";
+    case "session":
+      return [f.status, f.date].filter(Boolean).join(" · ") || "Session";
   }
 }
 
@@ -138,6 +141,7 @@ export function useCampaignMutations() {
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ["campaign"] });
     qc.invalidateQueries({ queryKey: ["party"] });
+    qc.invalidateQueries({ queryKey: ["session-active"] });
   };
   const create = useMutation({
     mutationFn: (input: { type: EntityType; name: string; fields?: Record<string, unknown>; body?: string }) =>

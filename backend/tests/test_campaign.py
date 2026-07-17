@@ -66,7 +66,7 @@ def test_seed_only_when_missing(tmp_path: Path):
     store = CampaignStore(root)
     assert len(store.party()) == 4
     types = {e["type"] for e in store.index()}
-    assert types == {"pc", "npc", "location", "faction", "quest", "recap"}
+    assert types == {"pc", "npc", "location", "faction", "quest", "recap", "session"}
     # never reseeds or touches an existing campaign
     store.delete("npc-mara-ashfield")
     assert seed_if_missing(root) is False

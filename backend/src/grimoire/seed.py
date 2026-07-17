@@ -153,6 +153,40 @@ SAMPLE: list[tuple[str, str, dict[str, Any], str]] = [
      "End [[The Hollow King]] before his court walks the surface at midwinter."),
     ("quest", "A Debt Repaid", {"status": "Complete"},
      "The party returned [[Lady Serine Vale]]'s stolen seal — for a price."),
+    # -- prep: next session, armed ------------------------------------------
+    ("session", "Session 13 - Into the Pale Court", {
+        "status": "armed",
+        "date": "2026-07-18",
+        "strongStart": "A dying courier collapses at the tavern door, clutching Kaervek's family sigil.",
+        "reviewNotes": "Ilyana wants leverage over her patron. Kaervek chases family ghosts. Sable owes Vex a death. Brannoc wants a sample of the black sap.",
+        "scenes": [
+            {"id": "sc-1", "text": "The corpse on the beach — a body washes up wearing the Hollow King's sigil", "done": False},
+            {"id": "sc-2", "text": "Ambush at Blackfen Bridge — cultists spring from the reeds", "done": False},
+            {"id": "sc-3", "text": "The Innkeep's confession — Mara reveals she buried the previous party", "done": False},
+            {"id": "sc-4", "text": "The throne of bone — Vhaelor waits, patient and amused", "done": False},
+        ],
+        "secrets": [
+            {"id": "sec-1", "text": "The Dawnwatch chapel is built over the Pale Court's antechamber.", "revealed": False},
+            {"id": "sec-2", "text": "Vex Corvo already sold the party's names to the cult.", "revealed": False},
+            {"id": "sec-3", "text": "The Hollow King is Kaervek's great-uncle, presumed dead in the last war.", "revealed": False},
+            {"id": "sec-4", "text": "Ilyana's patron IS the Hollow King's rival — and knows it.", "revealed": False},
+            {"id": "sec-5", "text": "One villager per night vanishes; no one in town remembers them.", "revealed": False},
+            {"id": "sec-6", "text": "Sable's contact 'The Widow' is a Shadow wearing her old face.", "revealed": False},
+        ],
+        "npcs": ["Mara Ashfield", "Brother Isen", "Vex Corvo"],
+        "locations": ["Havenmoor", "The Weeping Wood", "The Pale Court"],
+        "monsters": [
+            {"ref": "monster-goblin-warrior", "name": "Goblin Warrior", "count": 3},
+            {"ref": "monster-hobgoblin-warrior", "name": "Hobgoblin Warrior", "count": 1},
+        ],
+        "treasure": [
+            "Sepulchral Cameo — 250 gp, silver-set",
+            "Scroll of Counterspell",
+            "The Hollow Sigil — quest key",
+        ],
+        "notes": [],
+    },
+     "Prep bundle for the descent into [[The Pale Court]]."),
     # -- recaps --------------------------------------------------------------
     ("recap", "Session 12 - The Weeping Wood Opens", {"date": "2026-07-04", "session": 12},
      "The party found the sap-slick path into [[The Weeping Wood]] and heard the choir of [[The Pale Court]] beneath the roots."),
