@@ -12,11 +12,12 @@ import os
 from pathlib import Path
 
 import uvicorn
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from .combat import CombatEngine, CombatError
+from .content import ContentStore
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 FRONTEND_DIST = REPO_ROOT / "frontend" / "dist"
@@ -24,6 +25,7 @@ FRONTEND_DIST = REPO_ROOT / "frontend" / "dist"
 app = FastAPI(title="Grimoire")
 
 engine = CombatEngine()
+content = ContentStore(REPO_ROOT / "content")
 
 
 class Hub:
@@ -64,6 +66,19 @@ async def health() -> dict:
 @app.get("/api/combat")
 async def combat_state(view: str = "dm") -> dict:
     return engine.player_view() if view == "players" else engine.full_view()
+
+
+@app.get("/api/content/index")
+async def content_index() -> dict:
+    return {"entries": content.index, "counts": content.counts()}
+
+
+@app.get("/api/content/{kind}/{entry_id}")
+async def content_entry(kind: str, entry_id: str) -> dict:
+    entry = content.get(kind, entry_id)
+    if entry is None:
+        raise HTTPException(status_code=404, detail=f"no {kind} '{entry_id}'")
+    return entry
 
 
 @app.websocket("/ws/combat")

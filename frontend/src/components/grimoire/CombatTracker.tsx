@@ -12,10 +12,13 @@ import { Button } from "@/components/ui/button";
 import {
   Popover, PopoverTrigger, PopoverContent,
 } from "@/components/ui/popover";
-import { conditions as CONDITIONS, spellEffects as SPELL_EFFECTS, monsters, type Monster } from "@/lib/mock-data";
+import { conditions as CONDITIONS, spellEffects as SPELL_EFFECTS } from "@/lib/mock-data";
 import {
   useDmCombat, dmCombat, startCombatWithParty, sortCombatants, type Effect,
 } from "@/lib/combat-store";
+import {
+  useContentIndex, fuzzySearch, fetchContentEntry, type MonsterEntry,
+} from "@/lib/content";
 import { cn } from "@/lib/utils";
 
 export function CombatTracker({
@@ -24,7 +27,7 @@ export function CombatTracker({
   onViewChange,
   onEnded,
 }: {
-  onOpenMonster?: (m: Monster) => void;
+  onOpenMonster?: (monsterId: string) => void;
   view?: "dm" | "players";
   onViewChange?: (v: "dm" | "players") => void;
   onEnded?: () => void;
@@ -35,10 +38,12 @@ export function CombatTracker({
 
   const send = (op: string, payload: Record<string, unknown> = {}) => dmCombat.send(op, payload);
 
-  const addMonster = (m: Monster) =>
+  const addMonster = async (id: string) => {
+    const m = await fetchContentEntry<MonsterEntry>("monster", id);
     send("add_monster", {
-      monster: { name: m.name, ref: m.id, ac: m.ac, hp: m.hp, maxHp: m.maxHp, initiativeBonus: m.initiativeBonus },
+      monster: { name: m.name, ref: m.id, ac: m.ac, hp: m.hp, maxHp: m.hp, initiativeBonus: m.initiativeBonus },
     });
+  };
 
   if (!state.active) {
     return (
@@ -202,12 +207,9 @@ export function CombatTracker({
                     {c.visibleToPlayers ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4 text-[var(--blood)]" />}
                   </button>
                 )}
-                {view === "dm" && c.kind === "monster" && (
+                {view === "dm" && c.kind === "monster" && c.ref && (
                   <button
-                    onClick={() => {
-                      const m = monsters.find((mm) => mm.id === c.ref);
-                      if (m) onOpenMonster?.(m);
-                    }}
+                    onClick={() => onOpenMonster?.(c.ref!)}
                     className="p-1.5 rounded hover:bg-secondary/60 text-muted-foreground hover:text-gold"
                     title="Open stat block"
                   >
@@ -339,11 +341,11 @@ function EffectPicker({ onAdd, onSetConc }: { onAdd: (e: Omit<Effect, "id">) => 
   );
 }
 
-function AddMonsterPopover({ onAdd }: { onAdd: (m: Monster) => void }) {
+function AddMonsterPopover({ onAdd }: { onAdd: (monsterId: string) => void }) {
   const [q, setQ] = useState("");
-  const results = q.trim()
-    ? monsters.filter((m) => m.name.toLowerCase().includes(q.toLowerCase())).slice(0, 8)
-    : monsters.slice(0, 6);
+  const index = useContentIndex();
+  const allMonsters = index.filter((e) => e.kind === "monster");
+  const results = q.trim() ? fuzzySearch(allMonsters, q, 10) : allMonsters.slice(0, 8);
   return (
     <Popover>
       <PopoverTrigger asChild>
@@ -354,10 +356,10 @@ function AddMonsterPopover({ onAdd }: { onAdd: (m: Monster) => void }) {
         <ul className="max-h-64 overflow-y-auto space-y-1">
           {results.map((m) => (
             <li key={m.id}>
-              <button onClick={() => onAdd(m)} className="w-full text-left px-2 py-1.5 rounded hover:bg-secondary/60">
-                <div className="flex justify-between text-sm">
-                  <span>{m.name}</span>
-                  <span className="text-muted-foreground text-xs">CR {m.cr} · AC {m.ac} · {m.hp} HP</span>
+              <button onClick={() => onAdd(m.id)} className="w-full text-left px-2 py-1.5 rounded hover:bg-secondary/60">
+                <div className="flex justify-between gap-2 text-sm">
+                  <span className="truncate">{m.name}</span>
+                  <span className="text-muted-foreground text-xs shrink-0">{m.meta}</span>
                 </div>
               </button>
             </li>

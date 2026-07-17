@@ -6,9 +6,11 @@ import { SearchPanel } from "@/components/grimoire/SearchPanel";
 import { CombatTracker } from "@/components/grimoire/CombatTracker";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Compass, Swords, Landmark, Users, ScrollText, StickyNote, MapPin, Eye, Skull, Sparkles, Shield, Heart, Flame } from "lucide-react";
-import { npcs, locations, scenes, secrets as initialSecrets, monsters, type Monster } from "@/lib/mock-data";
+import { Compass, Swords, Landmark, Users, ScrollText, StickyNote, MapPin, Eye, Skull, Sparkles, Shield, Heart, Search } from "lucide-react";
+import { npcs, locations, scenes, secrets as initialSecrets } from "@/lib/mock-data";
 import { useDmCombat, startCombatWithParty } from "@/lib/combat-store";
+import { useContentEntry, type MonsterEntry } from "@/lib/content";
+import { ContentDetail, MonsterDetail } from "@/components/grimoire/ContentDetail";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 
@@ -28,7 +30,7 @@ function Dashboard() {
   ]);
   const [secrets, setSecrets] = useState(initialSecrets);
   const [playerView, setPlayerView] = useState<"dm" | "players">("dm");
-  const [openMonster, setOpenMonster] = useState<Monster | null>(null);
+  const [openMonsterId, setOpenMonsterId] = useState<string | null>(null);
   const combat = useDmCombat();
 
   return (
@@ -69,7 +71,7 @@ function Dashboard() {
         <div className="grid grid-cols-1 xl:grid-cols-[1fr_1fr] gap-6">
           <div className="space-y-6">
             <CombatTracker
-              onOpenMonster={setOpenMonster}
+              onOpenMonster={setOpenMonsterId}
               view={playerView}
               onViewChange={setPlayerView}
               onEnded={() => setMode("exploration")}
@@ -77,33 +79,22 @@ function Dashboard() {
             <QuickNotesPanel notes={notes} onAdd={(t) => setNotes((n) => [{ id: crypto.randomUUID(), time: nowHm(), text: t }, ...n])} />
           </div>
           <div className="space-y-6">
-            <MonsterSheetPanel monster={openMonster ?? monsters[5]} />
+            <MonsterSheetPanel monsterId={openMonsterId} />
             <NPCSheetPanel />
           </div>
         </div>
       )}
 
-      <Sheet open={!!openMonster} onOpenChange={(o) => !o && setOpenMonster(null)}>
+      <Sheet open={!!openMonsterId && mode !== "combat"} onOpenChange={(o) => !o && setOpenMonsterId(null)}>
         <SheetContent side="right" className="w-full sm:max-w-lg glass-panel border-l-primary/30 overflow-y-auto">
-          {openMonster && (
+          {openMonsterId && (
             <>
               <SheetHeader className="border-b border-border/60 pb-4">
-                <SheetTitle className="font-display text-2xl text-gold tracking-wider">{openMonster.name}</SheetTitle>
-                <SheetDescription>{openMonster.type} · CR {openMonster.cr}</SheetDescription>
+                <SheetTitle className="font-display text-2xl text-gold tracking-wider">Stat Block</SheetTitle>
+                <SheetDescription>Monster · SRD 5.2.1</SheetDescription>
               </SheetHeader>
-              <div className="py-4 space-y-4">
-                <p className="text-sm italic text-muted-foreground">{openMonster.blurb}</p>
-                <div className="grid grid-cols-3 gap-2 text-center">
-                  <MiniStat label="AC" value={openMonster.ac} />
-                  <MiniStat label="HP" value={`${openMonster.hp}/${openMonster.maxHp}`} highlight />
-                  <MiniStat label="Speed" value={`${openMonster.speed} ft`} />
-                </div>
-                <div>
-                  <h4 className="font-display text-xs uppercase tracking-widest text-gold-soft mb-2">Actions</h4>
-                  <ul className="space-y-1 text-sm">
-                    {openMonster.actions.map((a) => <li key={a} className="px-3 py-2 rounded bg-black/30 border border-border/40">{a}</li>)}
-                  </ul>
-                </div>
+              <div className="py-4">
+                <ContentDetail kind="monster" id={openMonsterId} />
               </div>
             </>
           )}
@@ -304,31 +295,21 @@ function PlotlinePanel() {
   );
 }
 
-function MonsterSheetPanel({ monster }: { monster: Monster }) {
+function MonsterSheetPanel({ monsterId }: { monsterId: string | null }) {
+  const monster = useContentEntry<MonsterEntry>("monster", monsterId);
   return (
     <Panel title="Monster · Stat Block" icon={<Skull className="w-4 h-4" />} accent="ember">
-      <div className="space-y-3">
-        <div>
+      {monster ? (
+        <div className="space-y-3">
           <div className="font-display text-xl text-gold">{monster.name}</div>
-          <div className="text-xs text-muted-foreground">{monster.type} · CR {monster.cr}</div>
+          <MonsterDetail monster={monster} />
         </div>
-        <p className="text-sm italic text-muted-foreground">{monster.blurb}</p>
-        <div className="grid grid-cols-3 gap-2">
-          <MiniStat label="AC" value={monster.ac} />
-          <MiniStat label="HP" value={`${monster.hp}/${monster.maxHp}`} highlight />
-          <MiniStat label="Speed" value={`${monster.speed} ft`} />
-        </div>
-        <div>
-          <div className="text-[10px] uppercase tracking-widest text-gold-soft mb-1.5">Actions</div>
-          <ul className="space-y-1 text-sm">
-            {monster.actions.map((a) => (
-              <li key={a} className="px-3 py-2 rounded bg-black/30 border border-border/40 flex items-start gap-2">
-                <Flame className="w-3.5 h-3.5 text-[var(--blood)] mt-0.5 shrink-0" /> {a}
-              </li>
-            ))}
-          </ul>
-        </div>
-      </div>
+      ) : (
+        <p className="text-sm text-muted-foreground italic py-6 text-center">
+          Tap the <Search className="w-3.5 h-3.5 inline mx-0.5" /> icon on a monster in the tracker
+          to open its stat block here.
+        </p>
+      )}
     </Panel>
   );
 }

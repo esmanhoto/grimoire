@@ -210,3 +210,53 @@ html {
   height: 1px;
   background: linear-gradient(90deg, transparent, oklch(0.78 0.13 82 / 0.45), transparent);
 }
+
+/* SRD markdown bodies (spell/monster/item/rule text with embedded HTML tables) */
+.srd-body p {
+  margin-bottom: 0.6em;
+}
+.srd-body em {
+  color: var(--muted-foreground);
+}
+.srd-body strong {
+  color: var(--gold-soft);
+}
+.srd-body hr {
+  border: none;
+  border-top: 1px solid color-mix(in oklab, var(--border) 60%, transparent);
+  margin: 0.5em 0;
+}
+.srd-body h1,
+.srd-body h2,
+.srd-body h3,
+.srd-body h4,
+.srd-body h5 {
+  font-family: var(--font-display);
+  color: var(--gold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  margin: 1em 0 0.4em;
+}
+.srd-body table {
+  width: 100%;
+  margin: 0.6em 0;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+.srd-body th,
+.srd-body td {
+  border: 1px solid color-mix(in oklab, var(--border) 50%, transparent);
+  padding: 0.3em 0.5em;
+  text-align: left;
+}
+.srd-body th {
+  color: var(--gold-soft);
+  font-weight: 600;
+  background: rgb(0 0 0 / 0.25);
+}
+.srd-body ul,
+.srd-body ol {
+  margin: 0.4em 0 0.6em 1.2em;
+  list-style: disc;
+}

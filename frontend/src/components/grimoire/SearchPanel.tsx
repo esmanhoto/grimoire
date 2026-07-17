@@ -1,10 +1,36 @@
 import { useMemo, useState } from "react";
 import { Panel } from "./Panel";
+import { ContentSheet } from "./ContentDetail";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Search, X, Filter } from "lucide-react";
-import { searchIndex, party, spells, monsters } from "@/lib/mock-data";
+import { party, npcs, locations } from "@/lib/mock-data";
+import { useContentIndex, fuzzySearch, type ContentKind } from "@/lib/content";
 import { cn } from "@/lib/utils";
+
+// One searchable pool: SRD content (real ids, openable) + campaign entities
+// (mock until the campaign wiki milestone) + scoped-character entries.
+type PoolEntry = {
+  id: string;
+  name: string;
+  kind: ContentKind | "character" | "npc" | "location" | "feature" | "gear";
+  meta: string;
+};
+
+const KIND_LABEL: Record<string, string> = {
+  spell: "Spells",
+  monster: "Monsters",
+  item: "Magic Items",
+  rule: "Rules",
+  character: "Party",
+  npc: "NPCs",
+  location: "Locations",
+  feature: "Features",
+  gear: "Inventory",
+};
+
+const isSrdKind = (k: PoolEntry["kind"]): k is ContentKind =>
+  k === "spell" || k === "monster" || k === "item" || k === "rule";
 
 export function SearchPanel({
   scopedTo,
@@ -16,41 +42,69 @@ export function SearchPanel({
   onSetScope?: (id: string) => void;
 }) {
   const [q, setQ] = useState("");
+  const [open, setOpen] = useState<{ kind: ContentKind; id: string; name: string } | null>(null);
+  const srdIndex = useContentIndex();
   const scopedChar = party.find((p) => p.id === scopedTo);
 
-  const results = useMemo(() => {
-    if (!q.trim()) return [];
-    const needle = q.toLowerCase();
-    let pool = searchIndex;
+  const pool: PoolEntry[] = useMemo(() => {
     if (scopedChar) {
-      // filter to scoped character's spells, features, inventory
-      const items = [
-        ...scopedChar.spells.map((s) => {
-          const full = spells.find((sp) => sp.name === s.name);
-          return { id: `sc-${s.name}`, name: s.name, kind: "Spell", blurb: full?.blurb ?? `Lvl ${s.level}` };
+      return [
+        ...scopedChar.spells.map((s): PoolEntry => {
+          const srd = srdIndex.find(
+            (e) => e.kind === "spell" && e.name.toLowerCase() === s.name.toLowerCase(),
+          );
+          return srd ?? { id: `sc-${s.name}`, name: s.name, kind: "spell", meta: `Lvl ${s.level}` };
         }),
-        ...scopedChar.features.map((f) => ({ id: `sc-f-${f}`, name: f, kind: "Feature", blurb: `${scopedChar.name}'s feature` })),
-        ...scopedChar.inventory.map((i) => ({ id: `sc-i-${i}`, name: i, kind: "Item", blurb: `In ${scopedChar.name.split(" ")[0]}'s pack` })),
+        ...scopedChar.features.map(
+          (f): PoolEntry => ({ id: `sc-f-${f}`, name: f, kind: "feature", meta: "Class feature" }),
+        ),
+        ...scopedChar.inventory.map(
+          (i): PoolEntry => ({ id: `sc-i-${i}`, name: i, kind: "gear", meta: "Carried" }),
+        ),
       ];
-      pool = items;
     }
-    return pool
-      .filter((r) => r.name.toLowerCase().includes(needle) || r.blurb.toLowerCase().includes(needle))
-      .slice(0, 30);
-  }, [q, scopedChar]);
+    return [
+      ...srdIndex,
+      ...party.map(
+        (p): PoolEntry => ({
+          id: p.id,
+          name: p.name,
+          kind: "character",
+          meta: `${p.race} ${p.class} ${p.level}`,
+        }),
+      ),
+      ...npcs.map((n): PoolEntry => ({ id: n.id, name: n.name, kind: "npc", meta: n.role })),
+      ...locations.map(
+        (l): PoolEntry => ({ id: l.id, name: l.name, kind: "location", meta: l.region }),
+      ),
+    ];
+  }, [srdIndex, scopedChar]);
+
+  const results = useMemo(
+    () => (scopedChar && !q.trim() ? pool : fuzzySearch(pool, q)),
+    [pool, q, scopedChar],
+  );
 
   const grouped = useMemo(() => {
-    const g: Record<string, typeof results> = {};
+    const g: Record<string, PoolEntry[]> = {};
     for (const r of results) (g[r.kind] ??= []).push(r);
     return g;
   }, [results]);
 
-  const suggestions = q.trim() ? null : (
+  const pick = (r: PoolEntry) => {
+    if (isSrdKind(r.kind) && !r.id.startsWith("sc-")) {
+      setOpen({ kind: r.kind, id: r.id, name: r.name });
+    } else if (r.kind === "character") {
+      onSetScope?.(r.id);
+    }
+  };
+
+  const suggestions = q.trim() || scopedChar ? null : (
     <div className="grid grid-cols-2 gap-2 mt-3">
       <QuickChip label="Fireball" onPick={() => setQ("fireball")} kind="Spell" />
-      <QuickChip label="Owlbear" onPick={() => setQ("owlbear")} kind="Monster" />
-      <QuickChip label="Concentration" onPick={() => setQ("concentration")} kind="Rule" />
-      <QuickChip label="Cover" onPick={() => setQ("cover")} kind="Rule" />
+      <QuickChip label="Goblin" onPick={() => setQ("goblin")} kind="Monster" />
+      <QuickChip label="Grappled" onPick={() => setQ("grappled")} kind="Rule" />
+      <QuickChip label="Bag of Holding" onPick={() => setQ("bag of holding")} kind="Magic Item" />
     </div>
   );
 
@@ -100,17 +154,27 @@ export function SearchPanel({
           {Object.entries(grouped).map(([kind, items]) => (
             <div key={kind}>
               <div className="flex items-center gap-2 mb-1.5">
-                <span className="text-[10px] uppercase tracking-[0.25em] text-gold-soft">{kind}</span>
+                <span className="text-[10px] uppercase tracking-[0.25em] text-gold-soft">
+                  {KIND_LABEL[kind] ?? kind}
+                </span>
                 <div className="rune-divider flex-1" />
                 <span className="text-[10px] text-muted-foreground">{items.length}</span>
               </div>
               <ul className="space-y-1">
                 {items.map((r) => (
-                  <li key={r.id} className={cn("px-3 py-2 rounded-md bg-black/20 hover:bg-black/40 border border-transparent hover:border-primary/30 cursor-pointer transition")}>
-                    <div className="flex items-baseline justify-between gap-2">
-                      <span className="font-medium text-foreground">{r.name}</span>
-                      <span className="text-[10px] text-muted-foreground">{r.blurb}</span>
-                    </div>
+                  <li key={r.id}>
+                    <button
+                      onClick={() => pick(r)}
+                      className={cn(
+                        "w-full text-left px-3 py-2 rounded-md bg-black/20 hover:bg-black/40 border border-transparent hover:border-primary/30 transition",
+                        isSrdKind(r.kind) || r.kind === "character" ? "cursor-pointer" : "cursor-default",
+                      )}
+                    >
+                      <div className="flex items-baseline justify-between gap-2">
+                        <span className="font-medium text-foreground">{r.name}</span>
+                        <span className="text-[10px] text-muted-foreground">{r.meta}</span>
+                      </div>
+                    </button>
                   </li>
                 ))}
               </ul>
@@ -123,6 +187,8 @@ export function SearchPanel({
           The grimoire is silent on "{q}".
         </p>
       )}
+
+      <ContentSheet target={open} onClose={() => setOpen(null)} />
     </Panel>
   );
 }
