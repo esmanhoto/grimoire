@@ -1,0 +1,123 @@
+"""Grimoire backend: serves the built SPA, the API, and the combat WebSocket.
+
+Single trusted LAN table — no auth by design (see docs/plan.md). Role is
+declared by the connecting client: the DM dashboard connects as "dm", player
+phones as "player". Player connections only ever receive the projected view.
+"""
+
+from __future__ import annotations
+
+import asyncio
+import os
+from pathlib import Path
+
+import uvicorn
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi.responses import FileResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
+
+from .combat import CombatEngine, CombatError
+
+REPO_ROOT = Path(__file__).resolve().parents[3]
+FRONTEND_DIST = REPO_ROOT / "frontend" / "dist"
+
+app = FastAPI(title="Grimoire")
+
+engine = CombatEngine()
+
+
+class Hub:
+    """Tracks live WebSocket connections and broadcasts role-appropriate state."""
+
+    def __init__(self) -> None:
+        self.connections: dict[WebSocket, str] = {}
+        self.lock = asyncio.Lock()
+
+    async def join(self, ws: WebSocket, role: str) -> None:
+        async with self.lock:
+            self.connections[ws] = role
+
+    async def leave(self, ws: WebSocket) -> None:
+        async with self.lock:
+            self.connections.pop(ws, None)
+
+    async def broadcast_state(self) -> None:
+        full = {"type": "state", "state": engine.full_view()}
+        projected = {"type": "state", "state": engine.player_view()}
+        async with self.lock:
+            targets = list(self.connections.items())
+        for ws, role in targets:
+            try:
+                await ws.send_json(full if role == "dm" else projected)
+            except Exception:
+                await self.leave(ws)
+
+
+hub = Hub()
+
+
+@app.get("/api/health")
+async def health() -> dict:
+    return {"ok": True, "app": "grimoire"}
+
+
+@app.get("/api/combat")
+async def combat_state(view: str = "dm") -> dict:
+    return engine.player_view() if view == "players" else engine.full_view()
+
+
+@app.websocket("/ws/combat")
+async def combat_ws(ws: WebSocket, role: str = "player") -> None:
+    role = "dm" if role == "dm" else "player"
+    await ws.accept()
+    await hub.join(ws, role)
+    try:
+        state = engine.full_view() if role == "dm" else engine.player_view()
+        await ws.send_json({"type": "state", "state": state})
+        while True:
+            msg = await ws.receive_json()
+            if msg.get("type") != "action":
+                continue
+            try:
+                engine.apply(msg.get("op", ""), msg.get("payload") or {}, role)
+            except CombatError as e:
+                await ws.send_json({"type": "error", "message": str(e)})
+                continue
+            await hub.broadcast_state()
+    except WebSocketDisconnect:
+        pass
+    finally:
+        await hub.leave(ws)
+
+
+# -- SPA serving (production / at-the-table mode) ---------------------------
+
+if FRONTEND_DIST.is_dir():
+    app.mount("/assets", StaticFiles(directory=FRONTEND_DIST / "assets"), name="assets")
+
+    @app.get("/{path:path}", include_in_schema=False)
+    async def spa(path: str):  # noqa: ANN201 - starlette response types
+        candidate = (FRONTEND_DIST / path).resolve()
+        if path and candidate.is_file() and candidate.is_relative_to(FRONTEND_DIST):
+            return FileResponse(candidate)
+        return FileResponse(FRONTEND_DIST / "index.html")
+else:
+
+    @app.get("/", include_in_schema=False)
+    async def no_frontend() -> JSONResponse:
+        return JSONResponse(
+            {"detail": "frontend not built — run `bun run build` in frontend/, or use the Vite dev server"},
+            status_code=503,
+        )
+
+
+def run() -> None:
+    uvicorn.run(
+        "grimoire.main:app",
+        host=os.environ.get("GRIMOIRE_HOST", "0.0.0.0"),
+        port=int(os.environ.get("GRIMOIRE_PORT", "8010")),
+    )
+
+
+if __name__ == "__main__":
+    run()
