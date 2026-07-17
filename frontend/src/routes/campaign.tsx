@@ -15,8 +15,10 @@ import {
 } from "@/components/ui/dialog";
 import {
   useCampaignIndex, useCampaignEntity, useCampaignMutations, renderWikiBody,
-  entitySubline, TYPE_LABEL, type EntityType,
+  entitySubline, TYPE_LABEL, type CampaignEntity, type EntityType,
 } from "@/lib/campaign";
+import { CharacterForm } from "@/components/grimoire/CharacterForm";
+import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/campaign")({
@@ -41,6 +43,7 @@ function CampaignPage() {
   const entities = useCampaignIndex();
   const [tab, setTab] = useState<EntityType>("npc");
   const [openId, setOpenId] = useState<string | null>(null);
+  const [pcForm, setPcForm] = useState<{ entity: CampaignEntity | null } | null>(null);
 
   // Deep link from universal search: /campaign?open=<id>
   useEffect(() => {
@@ -68,6 +71,14 @@ function CampaignPage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2 justify-end">
+          <ImportBeyondDialog onCreated={setOpenId} />
+          <Button
+            variant="outline"
+            className="gap-2 border-primary/40"
+            onClick={() => setPcForm({ entity: null })}
+          >
+            <User className="w-4 h-4" /> New Character
+          </Button>
           <NewEntryDialog defaultType={tab} onCreated={setOpenId} />
         </div>
       </div>
@@ -115,8 +126,84 @@ function CampaignPage() {
         )}
       </div>
 
-      <EntitySheet id={openId} onClose={() => setOpenId(null)} onNavigate={setOpenId} />
+      <EntitySheet
+        id={pcForm ? null : openId}
+        onClose={() => setOpenId(null)}
+        onNavigate={setOpenId}
+        onEditPc={(entity) => setPcForm({ entity })}
+      />
+      <CharacterForm
+        entity={pcForm?.entity ?? null}
+        open={!!pcForm}
+        onClose={(savedId) => {
+          setPcForm(null);
+          if (savedId) {
+            setTab("pc");
+            setOpenId(savedId);
+          }
+        }}
+      />
     </div>
+  );
+}
+
+function ImportBeyondDialog({ onCreated }: { onCreated: (id: string) => void }) {
+  const qc = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const [v, setV] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const run = async () => {
+    if (!v.trim()) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const r = await fetch("/api/import/dndbeyond", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ idOrUrl: v.trim() }),
+      });
+      if (!r.ok) throw new Error((await r.json().catch(() => null))?.detail ?? r.statusText);
+      const created = await r.json();
+      qc.invalidateQueries({ queryKey: ["campaign"] });
+      qc.invalidateQueries({ queryKey: ["party"] });
+      setOpen(false);
+      setV("");
+      onCreated(created.id);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Import failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline" className="gap-2 border-primary/40"><Link2 className="w-4 h-4" /> Import from D&D Beyond</Button>
+      </DialogTrigger>
+      <DialogContent className="glass-panel border-primary/30 max-w-md">
+        <DialogHeader>
+          <DialogTitle className="font-display text-xl text-gold tracking-wider">Import Character</DialogTitle>
+          <DialogDescription>
+            Unofficial endpoint; the sheet must be set to Public. The mapping is best-effort —
+            review AC, HP, and features after importing.
+          </DialogDescription>
+        </DialogHeader>
+        <Input
+          value={v}
+          onChange={(e) => setV(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && run()}
+          placeholder="https://www.dndbeyond.com/characters/…"
+          className="bg-black/30"
+        />
+        {error && <p className="text-sm text-[var(--blood)]">{error}</p>}
+        <Button onClick={run} disabled={busy || !v.trim()} className="w-full bg-arcane text-primary-foreground shadow-arcane">
+          {busy ? "Fetching…" : "Fetch & Import"}
+        </Button>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -124,10 +211,12 @@ function EntitySheet({
   id,
   onClose,
   onNavigate,
+  onEditPc,
 }: {
   id: string | null;
   onClose: () => void;
   onNavigate: (id: string) => void;
+  onEditPc: (entity: CampaignEntity) => void;
 }) {
   const entity = useCampaignEntity(id);
   const { update, remove } = useCampaignMutations();
@@ -140,6 +229,10 @@ function EntitySheet({
 
   const startEdit = () => {
     if (!entity) return;
+    if (entity.type === "pc") {
+      onEditPc(entity);
+      return;
+    }
     setDraftName(entity.name);
     setDraftBody(entity.body);
     setDraftFields(

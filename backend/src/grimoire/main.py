@@ -150,6 +150,22 @@ async def session_add_note(req: NoteAdd) -> dict:
     return campaign.update(active["id"], fields={"notes": notes})
 
 
+class DdbImport(BaseModel):
+    idOrUrl: str
+
+
+@app.post("/api/import/dndbeyond")
+def import_dndbeyond(req: DdbImport) -> dict:
+    from .dndbeyond import ImportError_, extract_id, fetch_character, map_character
+
+    try:
+        data = fetch_character(extract_id(req.idOrUrl))
+        name, fields, body = map_character(data)
+        return campaign.create("pc", name, fields, body)
+    except (ImportError_, CampaignError) as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
 @app.post("/api/campaign")
 async def campaign_create(req: EntityCreate) -> dict:
     try:
