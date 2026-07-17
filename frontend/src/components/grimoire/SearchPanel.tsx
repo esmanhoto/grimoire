@@ -2,68 +2,41 @@ import { useMemo, useState } from "react";
 import { Panel } from "./Panel";
 import { ContentSheet } from "./ContentDetail";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Search, X, Filter } from "lucide-react";
+import { Search, X } from "lucide-react";
 import { party, npcs, locations } from "@/lib/mock-data";
 import { useContentIndex, fuzzySearch, type ContentKind } from "@/lib/content";
 import { cn } from "@/lib/utils";
 
 // One searchable pool: SRD content (real ids, openable) + campaign entities
-// (mock until the campaign wiki milestone) + scoped-character entries.
-type PoolEntry = {
-  id: string;
-  name: string;
-  kind: ContentKind | "character" | "npc" | "location" | "feature" | "gear";
-  meta: string;
-};
+// (mock until the campaign wiki milestone).
+type PoolKind = ContentKind | "character" | "npc" | "location";
+type PoolEntry = { id: string; name: string; kind: PoolKind; meta: string };
 
-const KIND_LABEL: Record<string, string> = {
-  spell: "Spells",
-  monster: "Monsters",
-  item: "Magic Items",
-  rule: "Rules",
-  character: "Party",
-  npc: "NPCs",
-  location: "Locations",
-  feature: "Features",
-  gear: "Inventory",
-};
+const CATEGORIES: { kind: PoolKind; label: string }[] = [
+  { kind: "spell", label: "Spells" },
+  { kind: "monster", label: "Monsters" },
+  { kind: "item", label: "Magic Items" },
+  { kind: "rule", label: "Rules" },
+  { kind: "character", label: "Party" },
+  { kind: "npc", label: "NPCs" },
+  { kind: "location", label: "Locations" },
+];
 
-const isSrdKind = (k: PoolEntry["kind"]): k is ContentKind =>
+const KIND_LABEL: Record<string, string> = Object.fromEntries(
+  CATEGORIES.map((c) => [c.kind, c.label]),
+);
+
+const isSrdKind = (k: PoolKind): k is ContentKind =>
   k === "spell" || k === "monster" || k === "item" || k === "rule";
 
-export function SearchPanel({
-  scopedTo,
-  onClearScope,
-  onSetScope,
-}: {
-  scopedTo?: string | null;
-  onClearScope?: () => void;
-  onSetScope?: (id: string) => void;
-}) {
+export function SearchPanel() {
   const [q, setQ] = useState("");
+  const [activeKinds, setActiveKinds] = useState<Set<PoolKind>>(new Set());
   const [open, setOpen] = useState<{ kind: ContentKind; id: string; name: string } | null>(null);
   const srdIndex = useContentIndex();
-  const scopedChar = party.find((p) => p.id === scopedTo);
 
-  const pool: PoolEntry[] = useMemo(() => {
-    if (scopedChar) {
-      return [
-        ...scopedChar.spells.map((s): PoolEntry => {
-          const srd = srdIndex.find(
-            (e) => e.kind === "spell" && e.name.toLowerCase() === s.name.toLowerCase(),
-          );
-          return srd ?? { id: `sc-${s.name}`, name: s.name, kind: "spell", meta: `Lvl ${s.level}` };
-        }),
-        ...scopedChar.features.map(
-          (f): PoolEntry => ({ id: `sc-f-${f}`, name: f, kind: "feature", meta: "Class feature" }),
-        ),
-        ...scopedChar.inventory.map(
-          (i): PoolEntry => ({ id: `sc-i-${i}`, name: i, kind: "gear", meta: "Carried" }),
-        ),
-      ];
-    }
-    return [
+  const pool: PoolEntry[] = useMemo(
+    () => [
       ...srdIndex,
       ...party.map(
         (p): PoolEntry => ({
@@ -77,13 +50,22 @@ export function SearchPanel({
       ...locations.map(
         (l): PoolEntry => ({ id: l.id, name: l.name, kind: "location", meta: l.region }),
       ),
-    ];
-  }, [srdIndex, scopedChar]);
-
-  const results = useMemo(
-    () => (scopedChar && !q.trim() ? pool : fuzzySearch(pool, q)),
-    [pool, q, scopedChar],
+    ],
+    [srdIndex],
   );
+
+  const toggleKind = (kind: PoolKind) =>
+    setActiveKinds((prev) => {
+      const next = new Set(prev);
+      if (next.has(kind)) next.delete(kind);
+      else next.add(kind);
+      return next;
+    });
+
+  const results = useMemo(() => {
+    const filtered = activeKinds.size === 0 ? pool : pool.filter((e) => activeKinds.has(e.kind));
+    return fuzzySearch(filtered, q);
+  }, [pool, q, activeKinds]);
 
   const grouped = useMemo(() => {
     const g: Record<string, PoolEntry[]> = {};
@@ -92,52 +74,17 @@ export function SearchPanel({
   }, [results]);
 
   const pick = (r: PoolEntry) => {
-    if (isSrdKind(r.kind) && !r.id.startsWith("sc-")) {
-      setOpen({ kind: r.kind, id: r.id, name: r.name });
-    } else if (r.kind === "character") {
-      onSetScope?.(r.id);
-    }
+    if (isSrdKind(r.kind)) setOpen({ kind: r.kind, id: r.id, name: r.name });
   };
 
-  const suggestions = q.trim() || scopedChar ? null : (
-    <div className="grid grid-cols-2 gap-2 mt-3">
-      <QuickChip label="Fireball" onPick={() => setQ("fireball")} kind="Spell" />
-      <QuickChip label="Goblin" onPick={() => setQ("goblin")} kind="Monster" />
-      <QuickChip label="Grappled" onPick={() => setQ("grappled")} kind="Rule" />
-      <QuickChip label="Bag of Holding" onPick={() => setQ("bag of holding")} kind="Magic Item" />
-    </div>
-  );
-
   return (
-    <Panel
-      title="Grimoire Search"
-      icon={<Search className="w-4 h-4" />}
-      accent="purple"
-      actions={
-        scopedChar ? (
-          <Badge variant="outline" className="border-primary/50 text-gold gap-1">
-            <Filter className="w-3 h-3" />
-            {scopedChar.name.split(" ")[0]}
-            <button onClick={onClearScope} className="ml-1 hover:text-foreground"><X className="w-3 h-3" /></button>
-          </Badge>
-        ) : (
-          <select
-            onChange={(e) => e.target.value && onSetScope?.(e.target.value)}
-            defaultValue=""
-            className="bg-transparent text-xs text-muted-foreground border border-border/60 rounded px-2 py-1 hover:text-gold cursor-pointer"
-          >
-            <option value="" disabled>Scope to…</option>
-            {party.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-          </select>
-        )
-      }
-    >
+    <Panel title="Grimoire Search" icon={<Search className="w-4 h-4" />} accent="purple">
       <div className="relative">
         <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
         <Input
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder={scopedChar ? `Search ${scopedChar.name.split(" ")[0]}'s spells, features, inventory…` : "Search spells, monsters, features, items, rules, NPCs…"}
+          placeholder="Search spells, monsters, items, rules, NPCs…"
           className="pl-10 pr-10 h-11 bg-black/30 border-primary/30 text-base placeholder:text-muted-foreground/70 focus-visible:ring-primary/40"
         />
         {q && (
@@ -147,7 +94,33 @@ export function SearchPanel({
         )}
       </div>
 
-      {suggestions}
+      <div className="mt-3 flex flex-wrap gap-1.5">
+        {CATEGORIES.map(({ kind, label }) => {
+          const active = activeKinds.has(kind);
+          return (
+            <button
+              key={kind}
+              onClick={() => toggleKind(kind)}
+              className={cn(
+                "text-[11px] px-2.5 py-1 rounded-full border transition",
+                active
+                  ? "bg-primary/20 border-[var(--gold)]/60 text-gold"
+                  : "bg-black/20 border-border/50 text-muted-foreground hover:text-foreground hover:border-primary/40",
+              )}
+            >
+              {label}
+            </button>
+          );
+        })}
+        {activeKinds.size > 0 && (
+          <button
+            onClick={() => setActiveKinds(new Set())}
+            className="text-[11px] px-2 py-1 text-muted-foreground hover:text-foreground underline underline-offset-2"
+          >
+            clear
+          </button>
+        )}
+      </div>
 
       {results.length > 0 && (
         <div className="mt-4 max-h-80 overflow-y-auto space-y-4 pr-1">
@@ -167,7 +140,7 @@ export function SearchPanel({
                       onClick={() => pick(r)}
                       className={cn(
                         "w-full text-left px-3 py-2 rounded-md bg-black/20 hover:bg-black/40 border border-transparent hover:border-primary/30 transition",
-                        isSrdKind(r.kind) || r.kind === "character" ? "cursor-pointer" : "cursor-default",
+                        isSrdKind(r.kind) ? "cursor-pointer" : "cursor-default",
                       )}
                     >
                       <div className="flex items-baseline justify-between gap-2">
@@ -190,17 +163,5 @@ export function SearchPanel({
 
       <ContentSheet target={open} onClose={() => setOpen(null)} />
     </Panel>
-  );
-}
-
-function QuickChip({ label, kind, onPick }: { label: string; kind: string; onPick: () => void }) {
-  return (
-    <button
-      onClick={onPick}
-      className="text-left px-3 py-2 rounded-md bg-black/20 hover:bg-black/40 border border-border/50 hover:border-primary/40 transition"
-    >
-      <div className="text-sm text-foreground">{label}</div>
-      <div className="text-[10px] text-muted-foreground uppercase tracking-widest">{kind}</div>
-    </button>
   );
 }

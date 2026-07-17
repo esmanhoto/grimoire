@@ -23,7 +23,6 @@ type Note = { id: string; time: string; text: string };
 
 function Dashboard() {
   const [mode, setMode] = useState<Mode>("exploration");
-  const [scopedChar, setScopedChar] = useState<string | null>(null);
   const [notes, setNotes] = useState<Note[]>([
     { id: "n1", time: "19:42", text: "Mara admitted she buried the last party." },
     { id: "n2", time: "20:11", text: "Sable palmed the sigil ring off Vex — nobody noticed." },
@@ -56,9 +55,9 @@ function Dashboard() {
         }
       />
 
-      <SearchPanel scopedTo={scopedChar} onClearScope={() => setScopedChar(null)} onSetScope={setScopedChar} />
+      <SearchPanel />
 
-      <PartyPanel onSelectMember={setScopedChar} scopedTo={scopedChar} />
+      <PartyPanel />
 
       {mode === "exploration" ? (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
