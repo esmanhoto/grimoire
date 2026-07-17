@@ -260,3 +260,20 @@ html {
   margin: 0.4em 0 0.6em 1.2em;
   list-style: disc;
 }
+
+/* Campaign wiki links inside rendered markdown */
+.wikilink {
+  color: var(--purple-arcane);
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-underline-offset: 4px;
+  cursor: pointer;
+}
+.wikilink:hover {
+  color: var(--gold);
+}
+.wikilink-broken {
+  color: var(--muted-foreground);
+  text-decoration: underline dotted;
+  text-underline-offset: 4px;
+}

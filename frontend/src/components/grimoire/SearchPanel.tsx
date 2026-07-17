@@ -1,15 +1,16 @@
 import { useMemo, useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import { Panel } from "./Panel";
 import { ContentSheet } from "./ContentDetail";
 import { Input } from "@/components/ui/input";
 import { Search, X } from "lucide-react";
-import { party, npcs, locations } from "@/lib/mock-data";
+import { useCampaignIndex, entitySubline, type EntityType } from "@/lib/campaign";
 import { useContentIndex, fuzzySearch, type ContentKind } from "@/lib/content";
 import { cn } from "@/lib/utils";
 
-// One searchable pool: SRD content (real ids, openable) + campaign entities
-// (mock until the campaign wiki milestone).
-type PoolKind = ContentKind | "character" | "npc" | "location";
+// One searchable pool: SRD content (opens a detail sheet) + campaign wiki
+// entities (navigate to the campaign page).
+type PoolKind = ContentKind | EntityType;
 type PoolEntry = { id: string; name: string; kind: PoolKind; meta: string };
 
 const CATEGORIES: { kind: PoolKind; label: string }[] = [
@@ -19,9 +20,12 @@ const CATEGORIES: { kind: PoolKind; label: string }[] = [
   { kind: "gear", label: "Equipment" },
   { kind: "feature", label: "Features" },
   { kind: "rule", label: "Rules" },
-  { kind: "character", label: "Party" },
+  { kind: "pc", label: "Party" },
   { kind: "npc", label: "NPCs" },
   { kind: "location", label: "Locations" },
+  { kind: "faction", label: "Factions" },
+  { kind: "quest", label: "Quests" },
+  { kind: "recap", label: "Recaps" },
 ];
 
 const KIND_LABEL: Record<string, string> = Object.fromEntries(
@@ -36,24 +40,17 @@ export function SearchPanel() {
   const [activeKinds, setActiveKinds] = useState<Set<PoolKind>>(new Set());
   const [open, setOpen] = useState<{ kind: ContentKind; id: string; name: string } | null>(null);
   const srdIndex = useContentIndex();
+  const campaignIndex = useCampaignIndex();
+  const navigate = useNavigate();
 
   const pool: PoolEntry[] = useMemo(
     () => [
       ...srdIndex,
-      ...party.map(
-        (p): PoolEntry => ({
-          id: p.id,
-          name: p.name,
-          kind: "character",
-          meta: `${p.race} ${p.class} ${p.level}`,
-        }),
-      ),
-      ...npcs.map((n): PoolEntry => ({ id: n.id, name: n.name, kind: "npc", meta: n.role })),
-      ...locations.map(
-        (l): PoolEntry => ({ id: l.id, name: l.name, kind: "location", meta: l.region }),
+      ...campaignIndex.map(
+        (e): PoolEntry => ({ id: e.id, name: e.name, kind: e.type, meta: entitySubline(e) }),
       ),
     ],
-    [srdIndex],
+    [srdIndex, campaignIndex],
   );
 
   const toggleKind = (kind: PoolKind) =>
@@ -77,6 +74,7 @@ export function SearchPanel() {
 
   const pick = (r: PoolEntry) => {
     if (isSrdKind(r.kind)) setOpen({ kind: r.kind, id: r.id, name: r.name });
+    else navigate({ to: "/campaign", search: { open: r.id } });
   };
 
   return (
@@ -140,10 +138,7 @@ export function SearchPanel() {
                   <li key={r.id}>
                     <button
                       onClick={() => pick(r)}
-                      className={cn(
-                        "w-full text-left px-3 py-2 rounded-md bg-black/20 hover:bg-black/40 border border-transparent hover:border-primary/30 transition",
-                        isSrdKind(r.kind) ? "cursor-pointer" : "cursor-default",
-                      )}
+                      className="w-full text-left px-3 py-2 rounded-md bg-black/20 hover:bg-black/40 border border-transparent hover:border-primary/30 transition cursor-pointer"
                     >
                       <div className="flex items-baseline justify-between gap-2">
                         <span className="font-medium text-foreground">{r.name}</span>

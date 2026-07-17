@@ -16,16 +16,23 @@ from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
+from pydantic import BaseModel
+
+from .campaign import CampaignError, CampaignStore
 from .combat import CombatEngine, CombatError
 from .content import ContentStore
+from .seed import seed_if_missing
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 FRONTEND_DIST = REPO_ROOT / "frontend" / "dist"
+CAMPAIGN_DIR = Path(os.environ.get("GRIMOIRE_CAMPAIGN_DIR", REPO_ROOT / "campaign"))
 
 app = FastAPI(title="Grimoire")
 
 engine = CombatEngine()
 content = ContentStore(REPO_ROOT / "content")
+seed_if_missing(CAMPAIGN_DIR)
+campaign = CampaignStore(CAMPAIGN_DIR)
 
 
 class Hub:
@@ -79,6 +86,65 @@ async def content_entry(kind: str, entry_id: str) -> dict:
     if entry is None:
         raise HTTPException(status_code=404, detail=f"no {kind} '{entry_id}'")
     return entry
+
+
+# -- campaign wiki ----------------------------------------------------------
+
+
+class EntityCreate(BaseModel):
+    type: str
+    name: str
+    fields: dict = {}
+    body: str = ""
+
+
+class EntityUpdate(BaseModel):
+    name: str | None = None
+    fields: dict | None = None
+    body: str | None = None
+
+
+@app.get("/api/campaign")
+async def campaign_index() -> dict:
+    return {"entities": campaign.index()}
+
+
+@app.get("/api/party")
+async def party() -> dict:
+    return {"party": campaign.party()}
+
+
+@app.get("/api/campaign/{entity_id}")
+async def campaign_entity(entity_id: str) -> dict:
+    entity = campaign.get(entity_id)
+    if entity is None:
+        raise HTTPException(status_code=404, detail=f"no entity '{entity_id}'")
+    return entity
+
+
+@app.post("/api/campaign")
+async def campaign_create(req: EntityCreate) -> dict:
+    try:
+        return campaign.create(req.type, req.name, req.fields, req.body)
+    except CampaignError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.put("/api/campaign/{entity_id}")
+async def campaign_update(entity_id: str, req: EntityUpdate) -> dict:
+    try:
+        return campaign.update(entity_id, name=req.name, fields=req.fields, body=req.body)
+    except CampaignError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.delete("/api/campaign/{entity_id}")
+async def campaign_delete(entity_id: str) -> dict:
+    try:
+        campaign.delete(entity_id)
+    except CampaignError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    return {"deleted": entity_id}
 
 
 @app.websocket("/ws/combat")

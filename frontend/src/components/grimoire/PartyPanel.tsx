@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef, useState } from "react";
-import { party as defaultParty, type Character } from "@/lib/mock-data";
+import { useParty, type Character } from "@/lib/campaign";
 import { Panel } from "./Panel";
 import { ContentDetail } from "./ContentDetail";
 import { Users, Eye, Shield, Heart, Zap, ArrowLeft, ChevronDown } from "lucide-react";
@@ -21,7 +21,8 @@ const colorRing: Record<string, string> = {
   ember: "ring-[var(--blood)]/40 from-[var(--blood)]/25",
 };
 
-export function PartyPanel({ party = defaultParty }: { party?: Character[] }) {
+export function PartyPanel() {
+  const party = useParty();
   const [openId, setOpenId] = useState<string | null>(null);
   const active = party.find((p) => p.id === openId) ?? null;
 

@@ -3,7 +3,7 @@
 // store just mirrors the last broadcast state and sends action messages.
 
 import { useSyncExternalStore } from "react";
-import { party } from "./mock-data";
+import type { Character } from "./campaign";
 
 export type EffectKind = "condition" | "spell" | "custom";
 export type Effect = { id: string; label: string; duration: string; kind: EffectKind };
@@ -179,7 +179,7 @@ export function usePlayerCombat(): PlayerCombatState {
 
 /** Start combat with the whole party in the tracker; players type their own
  * initiative from their phones, monsters get added (and auto-rolled) ad hoc. */
-export function startCombatWithParty(): void {
+export function startCombatWithParty(party: Character[]): void {
   dmCombat.send("start_combat", {
     combatants: party.map((p) => ({
       name: p.name,

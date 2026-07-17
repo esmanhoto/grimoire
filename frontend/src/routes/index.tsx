@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Compass, Swords, Landmark, Users, ScrollText, StickyNote, MapPin, Eye, Skull, Sparkles, Shield, Heart, Search } from "lucide-react";
 import { npcs, locations, scenes, secrets as initialSecrets } from "@/lib/mock-data";
 import { useDmCombat, startCombatWithParty } from "@/lib/combat-store";
+import { useParty } from "@/lib/campaign";
 import { useContentEntry, type MonsterEntry } from "@/lib/content";
 import { ContentDetail, MonsterDetail } from "@/components/grimoire/ContentDetail";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
@@ -31,6 +32,7 @@ function Dashboard() {
   const [playerView, setPlayerView] = useState<"dm" | "players">("dm");
   const [openMonsterId, setOpenMonsterId] = useState<string | null>(null);
   const combat = useDmCombat();
+  const party = useParty();
 
   return (
     <div className="max-w-[1600px] mx-auto px-4 md:px-8 py-6 space-y-6">
@@ -43,7 +45,7 @@ function Dashboard() {
             {mode === "exploration" && (
               <Button
                 onClick={() => {
-                  if (!combat.active) startCombatWithParty();
+                  if (!combat.active) startCombatWithParty(party);
                   setMode("combat");
                 }}
                 className="bg-arcane text-primary-foreground shadow-arcane gap-2 font-semibold tracking-wide"

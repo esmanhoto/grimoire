@@ -16,6 +16,7 @@ import { conditions as CONDITIONS, spellEffects as SPELL_EFFECTS } from "@/lib/m
 import {
   useDmCombat, dmCombat, startCombatWithParty, sortCombatants, type Effect,
 } from "@/lib/combat-store";
+import { useParty } from "@/lib/campaign";
 import {
   useContentIndex, fuzzySearch, fetchContentEntry, type MonsterEntry,
 } from "@/lib/content";
@@ -33,6 +34,7 @@ export function CombatTracker({
   onEnded?: () => void;
 }) {
   const state = useDmCombat();
+  const party = useParty();
   const sorted = sortCombatants(state.combatants);
   const activeId = state.turnId ?? sorted[0]?.id ?? null;
 
@@ -53,7 +55,7 @@ export function CombatTracker({
             No combat running. Pull the party into the tracker, then add monsters as they appear.
           </p>
           <Button
-            onClick={() => startCombatWithParty()}
+            onClick={() => startCombatWithParty(party)}
             className="bg-arcane text-primary-foreground shadow-arcane gap-2 font-semibold tracking-wide"
           >
             <Swords className="w-4 h-4" /> Roll Initiative
