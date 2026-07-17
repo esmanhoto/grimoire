@@ -22,3 +22,4 @@ campaign/
 .DS_Store
 .idea/
 .vscode/
+content/.srd-cache/
