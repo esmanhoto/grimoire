@@ -69,7 +69,7 @@
   "id": "gear-battleaxe",
   "name": "Battleaxe",
   "category": "Martial Melee Weapons",
-  "body": "**Damage:** 1d8 Slashing\n**Range:** 5/— ft.\n**Properties:** Versatile\n**Mastery:** Topple\n**Cost:** 10 gp · 4 lb."
+  "body": "**Damage:** 1d8 Slashing\n\n**Range:** 5/— ft.\n\n**Properties:** Versatile\n\n**Mastery:** Topple\n\n**Cost:** 10 gp · 4 lb."
  },
  {
   "id": "gear-bedroll",
@@ -99,7 +99,7 @@
   "id": "gear-blowgun",
   "name": "Blowgun",
   "category": "Martial Weapons",
-  "body": "**Damage:** 1 Piercing\n**Range:** 25/100 ft.\n**Properties:** Ammunition, Loading\n**Mastery:** Vex\n**Cost:** 10 gp · 1 lb."
+  "body": "**Damage:** 1 Piercing\n\n**Range:** 25/100 ft.\n\n**Properties:** Ammunition, Loading\n\n**Mastery:** Vex\n\n**Cost:** 10 gp · 1 lb."
  },
  {
   "id": "gear-book",
@@ -123,7 +123,7 @@
   "id": "gear-breastplate",
   "name": "Breastplate",
   "category": "Armor",
-  "body": "**AC:** 14 + Dex modifier (max 2)\n**Cost:** 400 gp · 20 lb."
+  "body": "**AC:** 14 + Dex modifier (max 2)\n\n**Cost:** 400 gp · 20 lb."
  },
  {
   "id": "gear-brewers-supplies",
@@ -207,13 +207,13 @@
   "id": "gear-chain-mail",
   "name": "Chain Mail",
   "category": "Armor",
-  "body": "**AC:** 16\n**Strength minimum:** 13\n**Stealth:** Disadvantage\n**Cost:** 75 gp · 55 lb."
+  "body": "**AC:** 16\n\n**Strength minimum:** 13\n\n**Stealth:** Disadvantage\n\n**Cost:** 75 gp · 55 lb."
  },
  {
   "id": "gear-chain-shirt",
   "name": "Chain Shirt",
   "category": "Armor",
-  "body": "**AC:** 13 + Dex modifier (max 2)\n**Cost:** 50 gp · 14 lb."
+  "body": "**AC:** 13 + Dex modifier (max 2)\n\n**Cost:** 50 gp · 14 lb."
  },
  {
   "id": "gear-chest",
@@ -243,7 +243,7 @@
   "id": "gear-club",
   "name": "Club",
   "category": "Melee Weapons",
-  "body": "**Damage:** 1d4 Bludgeoning\n**Range:** 5/— ft.\n**Properties:** Light\n**Mastery:** Slow\n**Cost:** 1 sp · 2 lb."
+  "body": "**Damage:** 1d4 Bludgeoning\n\n**Range:** 5/— ft.\n\n**Properties:** Light\n\n**Mastery:** Slow\n\n**Cost:** 1 sp · 2 lb."
  },
  {
   "id": "gear-cobblers-tools",
@@ -285,13 +285,13 @@
   "id": "gear-dagger",
   "name": "Dagger",
   "category": "Melee Weapons",
-  "body": "**Damage:** 1d4 Piercing\n**Range:** 5/— ft.\n**Properties:** Finesse, Light, Thrown\n**Mastery:** Nick\n**Cost:** 2 gp · 1 lb."
+  "body": "**Damage:** 1d4 Piercing\n\n**Range:** 5/— ft.\n\n**Properties:** Finesse, Light, Thrown\n\n**Mastery:** Nick\n\n**Cost:** 2 gp · 1 lb."
  },
  {
   "id": "gear-dart",
   "name": "Dart",
   "category": "Ranged Weapons",
-  "body": "**Damage:** 1d4 Piercing\n**Range:** 20/60 ft.\n**Properties:** Finesse, Thrown\n**Mastery:** Vex\n**Cost:** 5 gp · 0.25 lb."
+  "body": "**Damage:** 1d4 Piercing\n\n**Range:** 20/60 ft.\n\n**Properties:** Finesse, Thrown\n\n**Mastery:** Vex\n\n**Cost:** 5 gp · 0.25 lb."
  },
  {
   "id": "gear-dice",
@@ -357,7 +357,7 @@
   "id": "gear-flail",
   "name": "Flail",
   "category": "Martial Melee Weapons",
-  "body": "**Damage:** 1d8 Bludgeoning\n**Range:** 5/— ft.\n**Mastery:** Sap\n**Cost:** 10 gp · 2 lb."
+  "body": "**Damage:** 1d8 Bludgeoning\n\n**Range:** 5/— ft.\n\n**Mastery:** Sap\n\n**Cost:** 10 gp · 2 lb."
  },
  {
   "id": "gear-flask",
@@ -381,7 +381,7 @@
   "id": "gear-glaive",
   "name": "Glaive",
   "category": "Martial Melee Weapons",
-  "body": "**Damage:** 1d10 Slashing\n**Range:** 5/— ft.\n**Properties:** Heavy, Reach, Two-Handed\n**Mastery:** Graze\n**Cost:** 20 gp · 6 lb."
+  "body": "**Damage:** 1d10 Slashing\n\n**Range:** 5/— ft.\n\n**Properties:** Heavy, Reach, Two-Handed\n\n**Mastery:** Graze\n\n**Cost:** 20 gp · 6 lb."
  },
  {
   "id": "gear-glassblowers-tools",
@@ -399,43 +399,43 @@
   "id": "gear-greataxe",
   "name": "Greataxe",
   "category": "Martial Melee Weapons",
-  "body": "**Damage:** 1d12 Slashing\n**Range:** 5/— ft.\n**Properties:** Heavy, Two-Handed\n**Mastery:** Cleave\n**Cost:** 30 gp · 7 lb."
+  "body": "**Damage:** 1d12 Slashing\n\n**Range:** 5/— ft.\n\n**Properties:** Heavy, Two-Handed\n\n**Mastery:** Cleave\n\n**Cost:** 30 gp · 7 lb."
  },
  {
   "id": "gear-greatclub",
   "name": "Greatclub",
   "category": "Melee Weapons",
-  "body": "**Damage:** 1d8 Bludgeoning\n**Range:** 5/— ft.\n**Properties:** Two-Handed\n**Mastery:** Push\n**Cost:** 2 sp · 10 lb."
+  "body": "**Damage:** 1d8 Bludgeoning\n\n**Range:** 5/— ft.\n\n**Properties:** Two-Handed\n\n**Mastery:** Push\n\n**Cost:** 2 sp · 10 lb."
  },
  {
   "id": "gear-greatsword",
   "name": "Greatsword",
   "category": "Martial Melee Weapons",
-  "body": "**Damage:** 2d6 Slashing\n**Range:** 5/— ft.\n**Properties:** Heavy, Two-Handed\n**Mastery:** Graze\n**Cost:** 50 gp · 6 lb."
+  "body": "**Damage:** 2d6 Slashing\n\n**Range:** 5/— ft.\n\n**Properties:** Heavy, Two-Handed\n\n**Mastery:** Graze\n\n**Cost:** 50 gp · 6 lb."
  },
  {
   "id": "gear-halberd",
   "name": "Halberd",
   "category": "Martial Melee Weapons",
-  "body": "**Damage:** 1d10 Slashing\n**Range:** 5/— ft.\n**Properties:** Heavy, Reach, Two-Handed\n**Mastery:** Cleave\n**Cost:** 20 gp · 6 lb."
+  "body": "**Damage:** 1d10 Slashing\n\n**Range:** 5/— ft.\n\n**Properties:** Heavy, Reach, Two-Handed\n\n**Mastery:** Cleave\n\n**Cost:** 20 gp · 6 lb."
  },
  {
   "id": "gear-half-plate-armor",
   "name": "Half-Plate Armor",
   "category": "Armor",
-  "body": "**AC:** 15 + Dex modifier (max 2)\n**Stealth:** Disadvantage\n**Cost:** 750 gp · 40 lb."
+  "body": "**AC:** 15 + Dex modifier (max 2)\n\n**Stealth:** Disadvantage\n\n**Cost:** 750 gp · 40 lb."
  },
  {
   "id": "gear-hand-crossbow",
   "name": "Hand Crossbow",
   "category": "Martial Ranged Weapons",
-  "body": "**Damage:** 1d6 Piercing\n**Range:** 30/120 ft.\n**Properties:** Ammunition, Light, Loading\n**Mastery:** Vex\n**Cost:** 25 gp · 2 lb."
+  "body": "**Damage:** 1d6 Piercing\n\n**Range:** 30/120 ft.\n\n**Properties:** Ammunition, Light, Loading\n\n**Mastery:** Vex\n\n**Cost:** 25 gp · 2 lb."
  },
  {
   "id": "gear-handaxe",
   "name": "Handaxe",
   "category": "Melee Weapons",
-  "body": "**Damage:** 1d6 Slashing\n**Range:** 5/— ft.\n**Properties:** Light, Thrown\n**Mastery:** Vex\n**Cost:** 5 gp · 2 lb."
+  "body": "**Damage:** 1d6 Slashing\n\n**Range:** 5/— ft.\n\n**Properties:** Light, Thrown\n\n**Mastery:** Vex\n\n**Cost:** 5 gp · 2 lb."
  },
  {
   "id": "gear-healers-kit",
@@ -447,7 +447,7 @@
   "id": "gear-heavy-crossbow",
   "name": "Heavy Crossbow",
   "category": "Martial Ranged Weapons",
-  "body": "**Damage:** 1d10 Piercing\n**Range:** 100/400 ft.\n**Properties:** Ammunition, Heavy, Loading, Two-Handed\n**Mastery:** Push\n**Cost:** 50 gp · 18 lb."
+  "body": "**Damage:** 1d10 Piercing\n\n**Range:** 100/400 ft.\n\n**Properties:** Ammunition, Heavy, Loading, Two-Handed\n\n**Mastery:** Push\n\n**Cost:** 50 gp · 18 lb."
  },
  {
   "id": "gear-herbalism-kit",
@@ -459,7 +459,7 @@
   "id": "gear-hide-armor",
   "name": "Hide Armor",
   "category": "Armor",
-  "body": "**AC:** 12 + Dex modifier (max 2)\n**Cost:** 10 gp · 12 lb."
+  "body": "**AC:** 12 + Dex modifier (max 2)\n\n**Cost:** 10 gp · 12 lb."
  },
  {
   "id": "gear-holy-water",
@@ -495,7 +495,7 @@
   "id": "gear-javelin",
   "name": "Javelin",
   "category": "Melee Weapons",
-  "body": "**Damage:** 1d6 Piercing\n**Range:** 5/— ft.\n**Properties:** Thrown\n**Mastery:** Slow\n**Cost:** 5 gp · 2 lb."
+  "body": "**Damage:** 1d6 Piercing\n\n**Range:** 5/— ft.\n\n**Properties:** Thrown\n\n**Mastery:** Slow\n\n**Cost:** 5 gp · 2 lb."
  },
  {
   "id": "gear-jewelers-tools",
@@ -525,7 +525,7 @@
   "id": "gear-lance",
   "name": "Lance",
   "category": "Martial Melee Weapons",
-  "body": "**Damage:** 1d10 Piercing\n**Range:** 5/— ft.\n**Properties:** Heavy, Reach, Two-Handed\n**Mastery:** Topple\n**Cost:** 10 gp · 6 lb."
+  "body": "**Damage:** 1d10 Piercing\n\n**Range:** 5/— ft.\n\n**Properties:** Heavy, Reach, Two-Handed\n\n**Mastery:** Topple\n\n**Cost:** 10 gp · 6 lb."
  },
  {
   "id": "gear-lantern-bullseye",
@@ -543,7 +543,7 @@
   "id": "gear-leather-armor",
   "name": "Leather Armor",
   "category": "Armor",
-  "body": "**AC:** 11 + Dex modifier\n**Cost:** 10 gp · 10 lb."
+  "body": "**AC:** 11 + Dex modifier\n\n**Cost:** 10 gp · 10 lb."
  },
  {
   "id": "gear-leatherworkers-tools",
@@ -555,13 +555,13 @@
   "id": "gear-light-crossbow",
   "name": "Light Crossbow",
   "category": "Ranged Weapons",
-  "body": "**Damage:** 1d8 Piercing\n**Range:** 80/320 ft.\n**Properties:** Ammunition, Loading, Two-Handed\n**Mastery:** Slow\n**Cost:** 25 gp · 5 lb."
+  "body": "**Damage:** 1d8 Piercing\n\n**Range:** 80/320 ft.\n\n**Properties:** Ammunition, Loading, Two-Handed\n\n**Mastery:** Slow\n\n**Cost:** 25 gp · 5 lb."
  },
  {
   "id": "gear-light-hammer",
   "name": "Light Hammer",
   "category": "Melee Weapons",
-  "body": "**Damage:** 1d4 Bludgeoning\n**Range:** 5/— ft.\n**Properties:** Light, Thrown\n**Mastery:** Nick\n**Cost:** 2 gp · 2 lb."
+  "body": "**Damage:** 1d4 Bludgeoning\n\n**Range:** 5/— ft.\n\n**Properties:** Light, Thrown\n\n**Mastery:** Nick\n\n**Cost:** 2 gp · 2 lb."
  },
  {
   "id": "gear-lock",
@@ -573,13 +573,13 @@
   "id": "gear-longbow",
   "name": "Longbow",
   "category": "Martial Ranged Weapons",
-  "body": "**Damage:** 1d8 Piercing\n**Range:** 150/600 ft.\n**Properties:** Ammunition, Heavy, Two-Handed\n**Mastery:** Slow\n**Cost:** 5 gp · 2 lb."
+  "body": "**Damage:** 1d8 Piercing\n\n**Range:** 150/600 ft.\n\n**Properties:** Ammunition, Heavy, Two-Handed\n\n**Mastery:** Slow\n\n**Cost:** 5 gp · 2 lb."
  },
  {
   "id": "gear-longsword",
   "name": "Longsword",
   "category": "Martial Melee Weapons",
-  "body": "**Damage:** 1d8 Slashing\n**Range:** 5/— ft.\n**Properties:** Versatile\n**Mastery:** Sap\n**Cost:** 15 gp · 3 lb."
+  "body": "**Damage:** 1d8 Slashing\n\n**Range:** 5/— ft.\n\n**Properties:** Versatile\n\n**Mastery:** Sap\n\n**Cost:** 15 gp · 3 lb."
  },
  {
   "id": "gear-lute",
@@ -597,7 +597,7 @@
   "id": "gear-mace",
   "name": "Mace",
   "category": "Melee Weapons",
-  "body": "**Damage:** 1d6 Bludgeoning\n**Range:** 5/— ft.\n**Mastery:** Sap\n**Cost:** 5 gp · 2 lb."
+  "body": "**Damage:** 1d6 Bludgeoning\n\n**Range:** 5/— ft.\n\n**Mastery:** Sap\n\n**Cost:** 5 gp · 2 lb."
  },
  {
   "id": "gear-magnifying-glass",
@@ -633,19 +633,19 @@
   "id": "gear-maul",
   "name": "Maul",
   "category": "Martial Melee Weapons",
-  "body": "**Damage:** 2d6 Bludgeoning\n**Range:** 5/— ft.\n**Properties:** Heavy, Two-Handed\n**Mastery:** Topple\n**Cost:** 10 gp · 10 lb."
+  "body": "**Damage:** 2d6 Bludgeoning\n\n**Range:** 5/— ft.\n\n**Properties:** Heavy, Two-Handed\n\n**Mastery:** Topple\n\n**Cost:** 10 gp · 10 lb."
  },
  {
   "id": "gear-morningstar",
   "name": "Morningstar",
   "category": "Martial Melee Weapons",
-  "body": "**Damage:** 1d8 Piercing\n**Mastery:** Sap\n**Cost:** 15 gp · 4 lb."
+  "body": "**Damage:** 1d8 Piercing\n\n**Mastery:** Sap\n\n**Cost:** 15 gp · 4 lb."
  },
  {
   "id": "gear-musket",
   "name": "Musket",
   "category": "Martial Ranged Weapons",
-  "body": "**Damage:** 1d12 Piercing\n**Range:** 40/120 ft.\n**Properties:** Ammunition, Loading, Two-Handed\n**Mastery:** Slow\n**Cost:** 500 gp · 10 lb."
+  "body": "**Damage:** 1d12 Piercing\n\n**Range:** 40/120 ft.\n\n**Properties:** Ammunition, Loading, Two-Handed\n\n**Mastery:** Slow\n\n**Cost:** 500 gp · 10 lb."
  },
  {
   "id": "gear-navigators-tools",
@@ -681,7 +681,7 @@
   "id": "gear-padded-armor",
   "name": "Padded Armor",
   "category": "Armor",
-  "body": "**AC:** 11 + Dex modifier\n**Stealth:** Disadvantage\n**Cost:** 5 gp · 8 lb."
+  "body": "**AC:** 11 + Dex modifier\n\n**Stealth:** Disadvantage\n\n**Cost:** 5 gp · 8 lb."
  },
  {
   "id": "gear-painters-supplies",
@@ -717,13 +717,13 @@
   "id": "gear-pike",
   "name": "Pike",
   "category": "Martial Melee Weapons",
-  "body": "**Damage:** 1d10 Piercing\n**Range:** 5/— ft.\n**Properties:** Heavy, Reach, Two-Handed\n**Mastery:** Push\n**Cost:** 5 gp · 6 lb."
+  "body": "**Damage:** 1d10 Piercing\n\n**Range:** 5/— ft.\n\n**Properties:** Heavy, Reach, Two-Handed\n\n**Mastery:** Push\n\n**Cost:** 5 gp · 6 lb."
  },
  {
   "id": "gear-pistol",
   "name": "Pistol",
   "category": "Martial Ranged Weapons",
-  "body": "**Damage:** 1d10 Piercing\n**Range:** 30/90 ft.\n**Properties:** Ammunition, Loading\n**Mastery:** Vex\n**Cost:** 250 gp · 3 lb."
+  "body": "**Damage:** 1d10 Piercing\n\n**Range:** 30/90 ft.\n\n**Properties:** Ammunition, Loading\n\n**Mastery:** Vex\n\n**Cost:** 250 gp · 3 lb."
  },
  {
   "id": "gear-poisoners-kit",
@@ -735,7 +735,7 @@
   "id": "gear-plate-armor",
   "name": "Plate Armor",
   "category": "Armor",
-  "body": "**AC:** 18\n**Strength minimum:** 15\n**Stealth:** Disadvantage\n**Cost:** 1500 gp · 65 lb."
+  "body": "**AC:** 18\n\n**Strength minimum:** 15\n\n**Stealth:** Disadvantage\n\n**Cost:** 1500 gp · 65 lb."
  },
  {
   "id": "gear-playing-cards",
@@ -789,7 +789,7 @@
   "id": "gear-quarterstaff",
   "name": "Quarterstaff",
   "category": "Arcane Foci",
-  "body": "**Damage:** 1d6 Bludgeoning\n**Range:** 5/— ft.\n**Properties:** Versatile\n**Mastery:** Topple\n**Cost:** 2 sp · 4 lb."
+  "body": "**Damage:** 1d6 Bludgeoning\n\n**Range:** 5/— ft.\n\n**Properties:** Versatile\n\n**Mastery:** Topple\n\n**Cost:** 2 sp · 4 lb."
  },
  {
   "id": "gear-quiver",
@@ -807,7 +807,7 @@
   "id": "gear-rapier",
   "name": "Rapier",
   "category": "Martial Melee Weapons",
-  "body": "**Damage:** 1d8 Piercing\n**Range:** 5/— ft.\n**Properties:** Finesse\n**Mastery:** Vex\n**Cost:** 25 gp · 2 lb."
+  "body": "**Damage:** 1d8 Piercing\n\n**Range:** 5/— ft.\n\n**Properties:** Finesse\n\n**Mastery:** Vex\n\n**Cost:** 25 gp · 2 lb."
  },
  {
   "id": "gear-rations",
@@ -825,7 +825,7 @@
   "id": "gear-ring-mail",
   "name": "Ring Mail",
   "category": "Armor",
-  "body": "**AC:** 14\n**Stealth:** Disadvantage\n**Cost:** 30 gp · 40 lb."
+  "body": "**AC:** 14\n\n**Stealth:** Disadvantage\n\n**Cost:** 30 gp · 40 lb."
  },
  {
   "id": "gear-robe",
@@ -855,7 +855,7 @@
   "id": "gear-scale-mail",
   "name": "Scale Mail",
   "category": "Armor",
-  "body": "**AC:** 14 + Dex modifier (max 2)\n**Stealth:** Disadvantage\n**Cost:** 50 gp · 45 lb."
+  "body": "**AC:** 14 + Dex modifier (max 2)\n\n**Stealth:** Disadvantage\n\n**Cost:** 50 gp · 45 lb."
  },
  {
   "id": "gear-scholars-pack",
@@ -867,7 +867,7 @@
   "id": "gear-scimitar",
   "name": "Scimitar",
   "category": "Martial Melee Weapons",
-  "body": "**Damage:** 1d6 Slashing\n**Range:** 5/— ft.\n**Properties:** Finesse, Light\n**Mastery:** Nick\n**Cost:** 25 gp · 3 lb."
+  "body": "**Damage:** 1d6 Slashing\n\n**Range:** 5/— ft.\n\n**Properties:** Finesse, Light\n\n**Mastery:** Nick\n\n**Cost:** 25 gp · 3 lb."
  },
  {
   "id": "gear-shawm",
@@ -879,19 +879,19 @@
   "id": "gear-shield",
   "name": "Shield",
   "category": "Armor",
-  "body": "**AC:** 2\n**Cost:** 10 gp · 6 lb."
+  "body": "**AC:** 2\n\n**Cost:** 10 gp · 6 lb."
  },
  {
   "id": "gear-shortbow",
   "name": "Shortbow",
   "category": "Ranged Weapons",
-  "body": "**Damage:** 1d6 Piercing\n**Range:** 80/320 ft.\n**Properties:** Ammunition, Two-Handed\n**Mastery:** Vex\n**Cost:** 25 gp · 2 lb."
+  "body": "**Damage:** 1d6 Piercing\n\n**Range:** 80/320 ft.\n\n**Properties:** Ammunition, Two-Handed\n\n**Mastery:** Vex\n\n**Cost:** 25 gp · 2 lb."
  },
  {
   "id": "gear-shortsword",
   "name": "Shortsword",
   "category": "Martial Melee Weapons",
-  "body": "**Damage:** 1d6 Piercing\n**Range:** 5/— ft.\n**Properties:** Finesse, Light\n**Mastery:** Vex\n**Cost:** 10 gp · 2 lb."
+  "body": "**Damage:** 1d6 Piercing\n\n**Range:** 5/— ft.\n\n**Properties:** Finesse, Light\n\n**Mastery:** Vex\n\n**Cost:** 10 gp · 2 lb."
  },
  {
   "id": "gear-shovel",
@@ -903,7 +903,7 @@
   "id": "gear-sickle",
   "name": "Sickle",
   "category": "Melee Weapons",
-  "body": "**Damage:** 1d4 Slashing\n**Range:** 5/— ft.\n**Properties:** Light\n**Mastery:** Nick\n**Cost:** 1 gp · 2 lb."
+  "body": "**Damage:** 1d4 Slashing\n\n**Range:** 5/— ft.\n\n**Properties:** Light\n\n**Mastery:** Nick\n\n**Cost:** 1 gp · 2 lb."
  },
  {
   "id": "gear-signal-whistle",
@@ -915,7 +915,7 @@
   "id": "gear-sling",
   "name": "Sling",
   "category": "Ranged Weapons",
-  "body": "**Damage:** 1d4 Piercing\n**Range:** 30/120 ft.\n**Properties:** Ammunition\n**Mastery:** Slow\n**Cost:** 1 sp · 0 lb."
+  "body": "**Damage:** 1d4 Piercing\n\n**Range:** 30/120 ft.\n\n**Properties:** Ammunition\n\n**Mastery:** Slow\n\n**Cost:** 1 sp · 0 lb."
  },
  {
   "id": "gear-smiths-tools",
@@ -927,7 +927,7 @@
   "id": "gear-spear",
   "name": "Spear",
   "category": "Melee Weapons",
-  "body": "**Damage:** 1d6 Piercing\n**Range:** 5/— ft.\n**Properties:** Thrown, Versatile\n**Mastery:** Sap\n**Cost:** 5 gp · 2 lb."
+  "body": "**Damage:** 1d6 Piercing\n\n**Range:** 5/— ft.\n\n**Properties:** Thrown, Versatile\n\n**Mastery:** Sap\n\n**Cost:** 5 gp · 2 lb."
  },
  {
   "id": "gear-spellbook",
@@ -957,7 +957,7 @@
   "id": "gear-splint-armor",
   "name": "Splint Armor",
   "category": "Armor",
-  "body": "**AC:** 17\n**Strength minimum:** 15\n**Stealth:** Disadvantage\n**Cost:** 200 gp · 60 lb."
+  "body": "**AC:** 17\n\n**Strength minimum:** 15\n\n**Stealth:** Disadvantage\n\n**Cost:** 200 gp · 60 lb."
  },
  {
   "id": "gear-sprig-of-mistletoe",
@@ -987,7 +987,7 @@
   "id": "gear-studded-leather-armor",
   "name": "Studded Leather Armor",
   "category": "Armor",
-  "body": "**AC:** 12 + Dex modifier\n**Cost:** 45 gp · 13 lb."
+  "body": "**AC:** 12 + Dex modifier\n\n**Cost:** 45 gp · 13 lb."
  },
  {
   "id": "gear-tent",
@@ -1029,7 +1029,7 @@
   "id": "gear-trident",
   "name": "Trident",
   "category": "Martial Melee Weapons",
-  "body": "**Damage:** 1d6 Piercing\n**Range:** 5/— ft.\n**Properties:** Thrown, Versatile\n**Mastery:** Topple\n**Cost:** 5 gp · 4 lb."
+  "body": "**Damage:** 1d6 Piercing\n\n**Range:** 5/— ft.\n\n**Properties:** Thrown, Versatile\n\n**Mastery:** Topple\n\n**Cost:** 5 gp · 4 lb."
  },
  {
   "id": "gear-vial",
@@ -1053,13 +1053,13 @@
   "id": "gear-warhammer",
   "name": "Warhammer",
   "category": "Martial Melee Weapons",
-  "body": "**Damage:** 1d8 Bludgeoning\n**Range:** 5/— ft.\n**Properties:** Versatile\n**Mastery:** Push\n**Cost:** 15 gp · 5 lb."
+  "body": "**Damage:** 1d8 Bludgeoning\n\n**Range:** 5/— ft.\n\n**Properties:** Versatile\n\n**Mastery:** Push\n\n**Cost:** 15 gp · 5 lb."
  },
  {
   "id": "gear-war-pick",
   "name": "War Pick",
   "category": "Martial Melee Weapons",
-  "body": "**Damage:** 1d8 Piercing\n**Range:** 5/— ft.\n**Properties:** Versatile\n**Mastery:** Sap\n**Cost:** 5 gp · 2 lb."
+  "body": "**Damage:** 1d8 Piercing\n\n**Range:** 5/— ft.\n\n**Properties:** Versatile\n\n**Mastery:** Sap\n\n**Cost:** 5 gp · 2 lb."
  },
  {
   "id": "gear-waterskin",
@@ -1077,7 +1077,7 @@
   "id": "gear-whip",
   "name": "Whip",
   "category": "Martial Melee Weapons",
-  "body": "**Damage:** 1d4 Slashing\n**Range:** 5/— ft.\n**Properties:** Finesse, Reach\n**Mastery:** Slow\n**Cost:** 2 gp · 3 lb."
+  "body": "**Damage:** 1d4 Slashing\n\n**Range:** 5/— ft.\n\n**Properties:** Finesse, Reach\n\n**Mastery:** Slow\n\n**Cost:** 2 gp · 3 lb."
  },
  {
   "id": "gear-woodcarvers-tools",

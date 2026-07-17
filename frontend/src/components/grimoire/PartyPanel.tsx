@@ -172,35 +172,36 @@ function CharacterSheet({ c }: { c: Character }) {
     if (e) openDetail({ kind: e.kind, id: e.id, name: e.name });
   };
 
-  if (detail) {
-    return (
-      <div ref={rootRef}>
-        <SheetHeader className="border-b border-border/60 pb-4">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setDetail(null)}
-              className="p-2 rounded-md border border-border/60 text-muted-foreground hover:text-gold hover:border-primary/40 transition"
-              title={`Back to ${c.name}`}
-            >
-              <ArrowLeft className="w-4 h-4" />
-            </button>
-            <div>
-              <SheetTitle className="font-display text-2xl text-gold tracking-wider">{detail.name}</SheetTitle>
-              <SheetDescription className="uppercase tracking-widest text-xs">
-                From {c.name.split(" ")[0]}'s sheet · SRD 5.2.1
-              </SheetDescription>
-            </div>
-          </div>
-        </SheetHeader>
-        <div className="py-4">
-          <ContentDetail kind={detail.kind} id={detail.id} />
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div ref={rootRef}>
+      {/* Detail overlays the sheet; the sheet stays MOUNTED (just hidden) so
+          collapse state and content survive navigating away and back. */}
+      {detail && (
+        <div>
+          <SheetHeader className="border-b border-border/60 pb-4">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setDetail(null)}
+                className="p-2 rounded-md border border-border/60 text-muted-foreground hover:text-gold hover:border-primary/40 transition"
+                title={`Back to ${c.name}`}
+              >
+                <ArrowLeft className="w-4 h-4" />
+              </button>
+              <div>
+                <SheetTitle className="font-display text-2xl text-gold tracking-wider">{detail.name}</SheetTitle>
+                <SheetDescription className="uppercase tracking-widest text-xs">
+                  From {c.name.split(" ")[0]}'s sheet · SRD 5.2.1
+                </SheetDescription>
+              </div>
+            </div>
+          </SheetHeader>
+          <div className="py-4">
+            <ContentDetail kind={detail.kind} id={detail.id} />
+          </div>
+        </div>
+      )}
+
+      <div className={cn(detail && "hidden")}>
       <SheetHeader className="border-b border-border/60 pb-4">
         <SheetTitle className="font-display text-2xl text-gold tracking-wider">{c.name}</SheetTitle>
         <SheetDescription className="uppercase tracking-widest text-xs">
@@ -338,6 +339,7 @@ function CharacterSheet({ c }: { c: Character }) {
             })}
           </ul>
         </CollapsibleSection>
+      </div>
       </div>
     </div>
   );

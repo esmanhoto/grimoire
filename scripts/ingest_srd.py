@@ -240,14 +240,15 @@ def parse_equipment(data: list[dict]) -> list[dict]:
         if meta_bits:
             lines.append(f"**Cost:** {' · '.join(meta_bits)}")
         if desc := e.get("description"):
-            lines.append("")
             lines.append(desc)
         gear.append(
             {
                 "id": f"gear-{e['index']}",
                 "name": e["name"],
                 "category": cats[0] if cats else "Gear",
-                "body": "\n".join(lines).strip(),
+                # blank lines between stat lines — markdown folds single
+                # newlines into one paragraph
+                "body": "\n\n".join(lines).strip(),
             }
         )
     return gear
