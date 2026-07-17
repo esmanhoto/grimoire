@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { party as defaultParty, type Character } from "@/lib/mock-data";
 import { Panel } from "./Panel";
 import { ContentDetail } from "./ContentDetail";
-import { Users, Eye, Shield, Heart, Zap, ArrowLeft } from "lucide-react";
+import { Users, Eye, Shield, Heart, Zap, ArrowLeft, ChevronDown } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -115,24 +115,66 @@ const ABILITY_NAMES: Record<string, keyof Character["abilities"]> = {
 const mod = (score: number) => Math.floor((score - 10) / 2);
 const fmt = (v: number) => (v >= 0 ? `+${v}` : `−${-v}`);
 
-/** Find an SRD entry matching a character-sheet label ("Potion of Healing ×2"). */
-function findEntry(index: IndexEntry[], label: string, preferKind?: ContentKind): IndexEntry | null {
-  const clean = label.replace(/\s*×\d+\s*$/, "").toLowerCase();
-  const matches = index.filter((e) => e.name.toLowerCase() === clean);
-  if (matches.length === 0) return null;
-  return matches.find((e) => e.kind === preferKind) ?? matches[0];
+/** Find an SRD entry matching a character-sheet label. Cleans qualifiers
+ * ("Potion of Healing ×2", "Warhammer +1", "Sneak Attack (4d6)") and falls
+ * back to dropping leading adjectives ("Silvered Dagger" → "Dagger"). */
+function findEntry(
+  index: IndexEntry[],
+  label: string,
+  preferKinds: ContentKind[] = [],
+): IndexEntry | null {
+  const clean = label
+    .replace(/^Focus:\s*/i, "")
+    .replace(/\s*×\d+\s*$/, "")
+    .replace(/\s*\+\d+\s*$/, "")
+    .replace(/\s*\([^)]*\)\s*$/, "")
+    .trim()
+    .toLowerCase();
+  const words = clean.split(" ");
+  const candidates = [clean, ...words.slice(1, 3).map((_, i) => words.slice(i + 1).join(" "))];
+  for (const cand of candidates) {
+    if (!cand) continue;
+    const matches = index.filter((e) => e.name.toLowerCase() === cand);
+    if (matches.length > 0) {
+      for (const k of preferKinds) {
+        const m = matches.find((e) => e.kind === k);
+        if (m) return m;
+      }
+      return matches[0];
+    }
+  }
+  return null;
 }
 
 function CharacterSheet({ c }: { c: Character }) {
   const [detail, setDetail] = useState<{ kind: ContentKind; id: string; name: string } | null>(null);
   const index = useContentIndex();
-  const pb = Math.ceil(c.level / 4) + 1;
+  const rootRef = useRef<HTMLDivElement>(null);
+  const savedScroll = useRef(0);
   const ab = c.abilities;
   const saveProficient = new Set(c.saves.map((s) => ABILITY_NAMES[s]));
 
+  // The sheet's scroll container is the SheetContent parent; remember where
+  // we were before showing a detail so Back lands on the same spot.
+  const openDetail = (target: { kind: ContentKind; id: string; name: string }) => {
+    savedScroll.current = rootRef.current?.parentElement?.scrollTop ?? 0;
+    setDetail(target);
+  };
+
+  useLayoutEffect(() => {
+    const container = rootRef.current?.parentElement;
+    if (!container) return;
+    container.scrollTo({ top: detail ? 0 : savedScroll.current });
+  }, [detail]);
+
+  const tryOpen = (label: string, preferKinds: ContentKind[]) => {
+    const e = findEntry(index, label, preferKinds);
+    if (e) openDetail({ kind: e.kind, id: e.id, name: e.name });
+  };
+
   if (detail) {
     return (
-      <>
+      <div ref={rootRef}>
         <SheetHeader className="border-b border-border/60 pb-4">
           <div className="flex items-center gap-3">
             <button
@@ -153,17 +195,12 @@ function CharacterSheet({ c }: { c: Character }) {
         <div className="py-4">
           <ContentDetail kind={detail.kind} id={detail.id} />
         </div>
-      </>
+      </div>
     );
   }
 
-  const openEntry = (label: string, preferKind?: ContentKind) => {
-    const e = findEntry(index, label, preferKind);
-    if (e) setDetail({ kind: e.kind, id: e.id, name: e.name });
-  };
-
   return (
-    <>
+    <div ref={rootRef}>
       <SheetHeader className="border-b border-border/60 pb-4">
         <SheetTitle className="font-display text-2xl text-gold tracking-wider">{c.name}</SheetTitle>
         <SheetDescription className="uppercase tracking-widest text-xs">
@@ -187,34 +224,20 @@ function CharacterSheet({ c }: { c: Character }) {
               const score = ab[key];
               const isSave = saveProficient.has(key);
               return (
-                <div
-                  key={key}
-                  className={cn(
-                    "ornate-frame p-2 text-center",
-                    isSave && "ring-1 ring-[var(--gold)]/50 shadow-gold",
-                  )}
-                  title={isSave ? `${full}: saving throw proficiency (${fmt(mod(score) + pb)})` : full}
-                >
-                  <div className="text-[10px] tracking-widest text-muted-foreground uppercase">{key}</div>
+                <div key={key} className="ornate-frame p-2 text-center" title={full}>
+                  <div className="text-[10px] tracking-widest text-muted-foreground uppercase whitespace-nowrap">
+                    {key}
+                    {isSave && <span className="text-gold"> (Prof)</span>}
+                  </div>
                   <div className="font-display text-xl text-gold">{fmt(mod(score))}</div>
                   <div className="text-[10px] text-muted-foreground">{score}</div>
-                  {isSave && (
-                    <div className="mt-1 text-[9px] uppercase tracking-wider rounded-full border border-[var(--gold)]/50 text-gold px-1 py-0.5 flex items-center justify-center gap-0.5">
-                      <Shield className="w-2.5 h-2.5" /> {fmt(mod(score) + pb)}
-                    </div>
-                  )}
                 </div>
               );
             })}
           </div>
-          <p className="mt-1.5 text-[10px] text-muted-foreground text-right">
-            <Shield className="w-2.5 h-2.5 inline mr-0.5" />
-            gold frame = saving-throw proficiency (bonus shown)
-          </p>
         </div>
 
-        <div>
-          <SectionTitle>Skills</SectionTitle>
+        <CollapsibleSection title="Skills" defaultOpen={false}>
           <div className="grid grid-cols-2 gap-1.5 mt-2 text-sm">
             {SKILLS.map(([name, key]) => {
               const listed = c.skills.find((s) => s.name === name);
@@ -231,12 +254,11 @@ function CharacterSheet({ c }: { c: Character }) {
               );
             })}
           </div>
-        </div>
+        </CollapsibleSection>
 
         <Separator />
 
-        <div>
-          <SectionTitle>Spells & Cantrips</SectionTitle>
+        <CollapsibleSection title="Spells & Cantrips">
           {c.spells.length === 0 ? (
             <p className="text-sm text-muted-foreground mt-2 italic">No spells prepared.</p>
           ) : (
@@ -251,11 +273,11 @@ function CharacterSheet({ c }: { c: Character }) {
                     {c.spells
                       .filter((s) => s.level === lvl)
                       .map((s) => {
-                        const entry = findEntry(index, s.name, "spell");
+                        const entry = findEntry(index, s.name, ["spell"]);
                         return (
                           <button
                             key={s.name}
-                            onClick={() => entry && setDetail({ kind: entry.kind, id: entry.id, name: entry.name })}
+                            onClick={() => entry && openDetail({ kind: entry.kind, id: entry.id, name: entry.name })}
                             disabled={!entry}
                             className={cn(
                               "text-xs px-2 py-0.5 rounded-full bg-[var(--purple-arcane)]/20 border border-[var(--purple-arcane)]/40",
@@ -270,19 +292,18 @@ function CharacterSheet({ c }: { c: Character }) {
                 ))}
             </div>
           )}
-        </div>
+        </CollapsibleSection>
 
-        <div>
-          <SectionTitle>Features</SectionTitle>
+        <CollapsibleSection title="Features">
           <ul className="mt-2 space-y-1 text-sm">
             {c.features.map((f) => {
-              const entry = findEntry(index, f);
+              const entry = findEntry(index, f, ["feature", "spell", "rule"]);
               return (
                 <li key={f} className="flex gap-2">
                   <span className="text-gold">◆</span>
                   {entry ? (
                     <button
-                      onClick={() => setDetail({ kind: entry.kind, id: entry.id, name: entry.name })}
+                      onClick={() => openDetail({ kind: entry.kind, id: entry.id, name: entry.name })}
                       className="underline decoration-dotted underline-offset-4 hover:text-gold text-left"
                     >
                       {f}
@@ -294,17 +315,16 @@ function CharacterSheet({ c }: { c: Character }) {
               );
             })}
           </ul>
-        </div>
+        </CollapsibleSection>
 
-        <div>
-          <SectionTitle>Inventory</SectionTitle>
+        <CollapsibleSection title="Inventory">
           <ul className="mt-2 grid grid-cols-2 gap-1 text-sm">
             {c.inventory.map((i) => {
-              const entry = findEntry(index, i, "item");
+              const entry = findEntry(index, i, ["item", "gear"]);
               return (
                 <li key={i}>
                   <button
-                    onClick={() => openEntry(i, "item")}
+                    onClick={() => tryOpen(i, ["item", "gear"])}
                     disabled={!entry}
                     className={cn(
                       "w-full text-left px-2 py-1 rounded bg-black/20",
@@ -317,9 +337,34 @@ function CharacterSheet({ c }: { c: Character }) {
               );
             })}
           </ul>
-        </div>
+        </CollapsibleSection>
       </div>
-    </>
+    </div>
+  );
+}
+
+function CollapsibleSection({
+  title,
+  defaultOpen = true,
+  children,
+}: {
+  title: string;
+  defaultOpen?: boolean;
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div>
+      <button onClick={() => setOpen((o) => !o)} className="w-full flex items-center gap-3 group">
+        <div className="rune-divider flex-1" />
+        <h3 className="font-display text-xs uppercase tracking-[0.3em] text-gold-soft group-hover:text-gold transition flex items-center gap-1.5">
+          {title}
+          <ChevronDown className={cn("w-3.5 h-3.5 transition-transform", !open && "-rotate-90")} />
+        </h3>
+        <div className="rune-divider flex-1" />
+      </button>
+      {open && children}
+    </div>
   );
 }
 

@@ -16,6 +16,8 @@ const CATEGORIES: { kind: PoolKind; label: string }[] = [
   { kind: "spell", label: "Spells" },
   { kind: "monster", label: "Monsters" },
   { kind: "item", label: "Magic Items" },
+  { kind: "gear", label: "Equipment" },
+  { kind: "feature", label: "Features" },
   { kind: "rule", label: "Rules" },
   { kind: "character", label: "Party" },
   { kind: "npc", label: "NPCs" },
@@ -27,7 +29,7 @@ const KIND_LABEL: Record<string, string> = Object.fromEntries(
 );
 
 const isSrdKind = (k: PoolKind): k is ContentKind =>
-  k === "spell" || k === "monster" || k === "item" || k === "rule";
+  k === "spell" || k === "monster" || k === "item" || k === "rule" || k === "feature" || k === "gear";
 
 export function SearchPanel() {
   const [q, setQ] = useState("");

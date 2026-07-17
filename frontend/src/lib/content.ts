@@ -4,7 +4,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 
-export type ContentKind = "spell" | "monster" | "item" | "rule";
+export type ContentKind = "spell" | "monster" | "item" | "rule" | "feature" | "gear";
 
 export type IndexEntry = { id: string; name: string; kind: ContentKind; meta: string };
 
@@ -54,6 +54,17 @@ export type ItemEntry = {
 };
 
 export type RuleEntry = { id: string; name: string; tag: string; body: string; source: string };
+
+export type FeatureEntry = {
+  id: string;
+  name: string;
+  className: string;
+  level: number;
+  body: string;
+  source: string;
+};
+
+export type GearEntry = { id: string; name: string; category: string; body: string; source: string };
 
 export async function fetchContentEntry<T>(kind: ContentKind, id: string): Promise<T> {
   const r = await fetch(`/api/content/${kind}/${id}`);

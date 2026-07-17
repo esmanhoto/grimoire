@@ -6,6 +6,8 @@ import {
 import {
   useContentEntry,
   type ContentKind,
+  type FeatureEntry,
+  type GearEntry,
   type ItemEntry,
   type MonsterEntry,
   type RuleEntry,
@@ -125,12 +127,38 @@ export function RuleDetail({ rule }: { rule: RuleEntry }) {
   );
 }
 
+export function FeatureDetail({ feature }: { feature: FeatureEntry }) {
+  return (
+    <div className="space-y-3">
+      {feature.className && (
+        <p className="text-sm italic text-muted-foreground">
+          {feature.className} feature{feature.level > 0 && ` · Level ${feature.level}`}
+        </p>
+      )}
+      <SrdBody body={feature.body} />
+    </div>
+  );
+}
+
+export function GearDetail({ gear }: { gear: GearEntry }) {
+  return (
+    <div className="space-y-3">
+      <p className="text-sm italic text-muted-foreground">{gear.category}</p>
+      <SrdBody body={gear.body} />
+    </div>
+  );
+}
+
 export function ContentDetail({ kind, id }: { kind: ContentKind; id: string }) {
-  const entry = useContentEntry<SpellEntry & MonsterEntry & ItemEntry & RuleEntry>(kind, id);
+  const entry = useContentEntry<
+    SpellEntry & MonsterEntry & ItemEntry & RuleEntry & FeatureEntry & GearEntry
+  >(kind, id);
   if (!entry) return <p className="text-sm text-muted-foreground italic">Consulting the grimoire…</p>;
   if (kind === "spell") return <SpellDetail spell={entry} />;
   if (kind === "monster") return <MonsterDetail monster={entry} />;
   if (kind === "item") return <ItemDetail item={entry} />;
+  if (kind === "feature") return <FeatureDetail feature={entry} />;
+  if (kind === "gear") return <GearDetail gear={entry} />;
   return <RuleDetail rule={entry} />;
 }
 
@@ -139,6 +167,8 @@ const KIND_LABEL: Record<ContentKind, string> = {
   monster: "Monster",
   item: "Magic Item",
   rule: "Rule",
+  feature: "Class Feature",
+  gear: "Equipment",
 };
 
 export function ContentSheet({

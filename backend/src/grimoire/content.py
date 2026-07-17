@@ -20,6 +20,8 @@ KIND_FILES = {
     "monster": "monsters.json",
     "item": "magic-items.json",
     "rule": "rules.json",
+    "feature": "features.json",
+    "gear": "equipment.json",
 }
 
 
@@ -31,6 +33,10 @@ def _meta_line(kind: str, e: dict[str, Any]) -> str:
         return f"CR {e['cr']} · {e['type']}"
     if kind == "item":
         return f"{e['itemType']} · {e['rarity']}"
+    if kind == "feature":
+        return f"{e['className']} {e['level']}" if e.get("className") else "Feature"
+    if kind == "gear":
+        return e.get("category") or "Gear"
     return e.get("tag") or "Rule"
 
 
