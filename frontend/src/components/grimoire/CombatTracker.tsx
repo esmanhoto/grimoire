@@ -3,7 +3,7 @@ import { Panel } from "./Panel";
 import { HPBar, statusFromHp } from "./HPBar";
 import { CommitNumberInput } from "./CommitNumberInput";
 import {
-  Swords, ChevronRight, ChevronLeft, Eye, EyeOff, Plus, X,
+  Swords, ChevronRight, ChevronLeft, Eye, EyeOff, Plus, X, Check, Dices,
   Shield, Sparkles, Users, Skull, Search, Zap, ShieldAlert,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -12,7 +12,10 @@ import { Button } from "@/components/ui/button";
 import {
   Popover, PopoverTrigger, PopoverContent,
 } from "@/components/ui/popover";
-import { conditions as CONDITIONS, spellEffects as SPELL_EFFECTS } from "@/lib/mock-data";
+import {
+  CONDITION_PRESETS, SPELL_PRESETS, durationBadge, type EffectPreset,
+} from "@/lib/effect-presets";
+import type { DurationType } from "@/lib/combat-store";
 import {
   useDmCombat, dmCombat, startCombatWithParty, startPreppedCombat, sortCombatants, type Effect,
 } from "@/lib/combat-store";
@@ -166,7 +169,13 @@ export function CombatTracker({
                   )}
 
                   {c.effects.map((e) => (
-                    <EffectBadge key={e.id} effect={e} onClear={() => send("remove_effect", { id: c.id, effectId: e.id })} showClear={view === "dm"} />
+                    <EffectBadge
+                      key={e.id}
+                      effect={e}
+                      onClear={() => send("remove_effect", { id: c.id, effectId: e.id })}
+                      onConsume={() => send("consume_effect", { id: c.id, effectId: e.id })}
+                      showClear={view === "dm"}
+                    />
                   ))}
 
                   {view === "dm" && (
@@ -204,6 +213,33 @@ export function CombatTracker({
                       onClick={() => send("break_concentration", { id: c.id })}
                       className="text-[var(--blood)] hover:text-foreground underline underline-offset-2"
                     >Broken</button>
+                  </div>
+                )}
+
+                {/* Save-ends repeat prompts — non-blocking, resolved by hand */}
+                {view === "dm" && c.effects.filter((e) => e.pendingSave).map((e) => (
+                  <div key={e.id} className="mt-1 flex items-center gap-2 text-[11px] text-gold">
+                    <Dices className="w-3.5 h-3.5" />
+                    {e.label} — save ends{e.save && ` (${e.save})`}:
+                    <button
+                      onClick={() => send("resolve_save", { id: c.id, effectId: e.id, passed: true })}
+                      className="text-[var(--emerald-arcane)] hover:text-foreground underline underline-offset-2"
+                    >passed</button>
+                    <button
+                      onClick={() => send("resolve_save", { id: c.id, effectId: e.id, passed: false })}
+                      className="text-[var(--blood)] hover:text-foreground underline underline-offset-2"
+                    >failed</button>
+                  </div>
+                ))}
+
+                {/* Turn-start reminders: the active creature's effects, spelled out */}
+                {view === "dm" && active && c.effects.some((e) => e.reminder) && (
+                  <div className="mt-1.5 space-y-0.5">
+                    {c.effects.filter((e) => e.reminder).map((e) => (
+                      <div key={e.id} className="text-[11px] px-2 py-1 rounded bg-arcane/15 border border-primary/30 text-foreground/90">
+                        <span className="text-gold font-medium">{e.label}:</span> {e.reminder}
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>
@@ -251,17 +287,32 @@ export function CombatTracker({
   );
 }
 
-function EffectBadge({ effect, onClear, showClear }: { effect: Effect; onClear: () => void; showClear: boolean }) {
+function EffectBadge({ effect, onClear, onConsume, showClear }: {
+  effect: Effect;
+  onClear: () => void;
+  onConsume: () => void;
+  showClear: boolean;
+}) {
   const tone =
     effect.kind === "condition"
       ? "border-[var(--blood)]/60 text-[var(--blood)] bg-[var(--blood)]/10"
       : effect.kind === "spell"
       ? "border-[var(--purple-arcane)]/60 text-[var(--purple-arcane)] bg-[var(--purple-arcane)]/10"
       : "border-gold/60 text-gold bg-primary/10";
+  const hint = durationBadge(effect);
   return (
-    <Badge variant="outline" className={cn("gap-1 text-[10px] h-5", tone)}>
+    <Badge
+      variant="outline"
+      className={cn("gap-1 text-[10px] h-5", tone, effect.pendingSave && "ring-1 ring-[var(--gold)]")}
+      title={effect.reminder || undefined}
+    >
       {effect.label}
-      {effect.duration && <span className="opacity-60">· {effect.duration}</span>}
+      {hint && <span className="opacity-60">· {hint}</span>}
+      {showClear && effect.durationType === "next-attack" && (
+        <button onClick={onConsume} title="Triggered — consume" className="ml-0.5 hover:text-foreground">
+          <Check className="w-2.5 h-2.5" />
+        </button>
+      )}
       {showClear && (
         <button onClick={onClear} className="ml-0.5 hover:text-foreground"><X className="w-2.5 h-2.5" /></button>
       )}
@@ -306,8 +357,34 @@ function HpDeltaInput({ onDelta, onTempHp }: { onDelta: (d: number) => void; onT
   );
 }
 
-function EffectPicker({ onAdd, onSetConc }: { onAdd: (e: Omit<Effect, "id">) => void; onSetConc: (spell: string) => void }) {
+type EffectPayload = {
+  label: string;
+  kind: Effect["kind"];
+  durationType: DurationType;
+  rounds: number;
+  save: string;
+  reminder: string;
+};
+
+function EffectPicker({ onAdd, onSetConc }: { onAdd: (e: EffectPayload) => void; onSetConc: (spell: string) => void }) {
   const [custom, setCustom] = useState("");
+  const [concSpell, setConcSpell] = useState("");
+  const [dur, setDur] = useState<"preset" | DurationType>("preset");
+  const [rounds, setRounds] = useState(2);
+  const [save, setSave] = useState("");
+
+  const build = (p: EffectPreset): EffectPayload => {
+    const durationType = dur === "preset" ? p.durationType : dur;
+    return {
+      label: p.label,
+      kind: p.kind,
+      durationType,
+      rounds: durationType === "rounds" ? (dur === "preset" ? (p.rounds ?? rounds) : rounds) : 0,
+      save: durationType === "save-ends" ? save : "",
+      reminder: p.reminder,
+    };
+  };
+
   return (
     <Popover>
       <PopoverTrigger asChild>
@@ -315,18 +392,52 @@ function EffectPicker({ onAdd, onSetConc }: { onAdd: (e: Omit<Effect, "id">) => 
           <Plus className="w-3.5 h-3.5" />
         </button>
       </PopoverTrigger>
-      <PopoverContent className="w-80 glass-panel border-primary/30">
+      <PopoverContent className="w-96 glass-panel border-primary/30">
         <div className="space-y-3">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-[10px] uppercase tracking-widest text-gold-soft">Duration</span>
+            <select
+              value={dur}
+              onChange={(e) => setDur(e.target.value as typeof dur)}
+              className="bg-black/30 text-xs border border-border/60 rounded px-2 py-1"
+            >
+              <option value="preset">Preset default</option>
+              <option value="indefinite">Until removed</option>
+              <option value="rounds">N rounds</option>
+              <option value="save-ends">Save ends</option>
+              <option value="next-attack">On next attack</option>
+              <option value="concentration">Concentration</option>
+            </select>
+            {dur === "rounds" && (
+              <input
+                type="number"
+                min={1}
+                value={rounds}
+                onChange={(e) => setRounds(Math.max(1, Number(e.target.value) || 1))}
+                className="w-14 bg-black/30 text-xs border border-border/60 rounded px-2 py-1 text-center"
+              />
+            )}
+            {dur === "save-ends" && (
+              <Input
+                value={save}
+                onChange={(e) => setSave(e.target.value)}
+                placeholder="e.g. CON 13"
+                className="h-6 w-24 text-xs bg-black/30"
+              />
+            )}
+          </div>
+
           <div>
             <div className="text-[10px] uppercase tracking-widest text-gold-soft mb-1.5">Conditions</div>
             <div className="flex flex-wrap gap-1">
-              {CONDITIONS.map((c) => (
+              {CONDITION_PRESETS.map((p) => (
                 <button
-                  key={c}
-                  onClick={() => onAdd({ label: c, duration: "save ends", kind: "condition" })}
+                  key={p.label}
+                  title={p.reminder}
+                  onClick={() => onAdd(build(p))}
                   className="text-[11px] px-2 py-0.5 rounded-full bg-[var(--blood)]/10 border border-[var(--blood)]/40 text-[var(--blood)] hover:bg-[var(--blood)]/20"
                 >
-                  {c}
+                  {p.label}
                 </button>
               ))}
             </div>
@@ -334,13 +445,14 @@ function EffectPicker({ onAdd, onSetConc }: { onAdd: (e: Omit<Effect, "id">) => 
           <div>
             <div className="text-[10px] uppercase tracking-widest text-gold-soft mb-1.5">Spells & Abilities</div>
             <div className="flex flex-wrap gap-1">
-              {SPELL_EFFECTS.map((c) => (
+              {SPELL_PRESETS.map((p) => (
                 <button
-                  key={c}
-                  onClick={() => c === "Concentration" ? onSetConc("—") : onAdd({ label: c, duration: "1 min", kind: "spell" })}
+                  key={p.label}
+                  title={p.reminder}
+                  onClick={() => onAdd(build(p))}
                   className="text-[11px] px-2 py-0.5 rounded-full bg-[var(--purple-arcane)]/10 border border-[var(--purple-arcane)]/40 text-[var(--purple-arcane)] hover:bg-[var(--purple-arcane)]/20"
                 >
-                  {c}
+                  {p.label}
                 </button>
               ))}
             </div>
@@ -349,7 +461,38 @@ function EffectPicker({ onAdd, onSetConc }: { onAdd: (e: Omit<Effect, "id">) => 
             <div className="text-[10px] uppercase tracking-widest text-gold-soft mb-1.5">Custom</div>
             <div className="flex gap-2">
               <Input value={custom} onChange={(e) => setCustom(e.target.value)} placeholder="e.g. disadvantage on next attack" className="h-8 text-xs" />
-              <Button size="sm" className="h-8" onClick={() => { if (custom.trim()) { onAdd({ label: custom, duration: "on next attack", kind: "custom" }); setCustom(""); } }}>Add</Button>
+              <Button
+                size="sm"
+                className="h-8"
+                onClick={() => {
+                  if (custom.trim()) {
+                    onAdd({
+                      label: custom.trim(),
+                      kind: "custom",
+                      durationType: dur === "preset" ? "indefinite" : dur,
+                      rounds: dur === "rounds" ? rounds : 0,
+                      save: dur === "save-ends" ? save : "",
+                      reminder: "",
+                    });
+                    setCustom("");
+                  }
+                }}
+              >Add</Button>
+            </div>
+          </div>
+          <div>
+            <div className="text-[10px] uppercase tracking-widest text-gold-soft mb-1.5">Concentrating on…</div>
+            <div className="flex gap-2">
+              <Input value={concSpell} onChange={(e) => setConcSpell(e.target.value)} placeholder="spell name" className="h-8 text-xs" />
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 border-[var(--purple-arcane)]/50 text-[var(--purple-arcane)]"
+                onClick={() => {
+                  onSetConc(concSpell.trim() || "—");
+                  setConcSpell("");
+                }}
+              >Set</Button>
             </div>
           </div>
         </div>

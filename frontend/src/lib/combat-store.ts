@@ -6,7 +6,18 @@ import { useSyncExternalStore } from "react";
 import type { Character } from "./campaign";
 
 export type EffectKind = "condition" | "spell" | "custom";
-export type Effect = { id: string; label: string; duration: string; kind: EffectKind };
+export type DurationType = "indefinite" | "rounds" | "save-ends" | "next-attack" | "concentration";
+export type Effect = {
+  id: string;
+  label: string;
+  kind: EffectKind;
+  durationType: DurationType;
+  rounds: number;
+  save: string;
+  reminder: string;
+  sourceId: string | null;
+  pendingSave: boolean;
+};
 
 export type Combatant = {
   id: string;

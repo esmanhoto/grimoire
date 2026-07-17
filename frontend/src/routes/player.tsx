@@ -2,8 +2,9 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { HPBar } from "@/components/grimoire/HPBar";
 import { CommitNumberInput } from "@/components/grimoire/CommitNumberInput";
-import { Sparkles, Shield, Heart, Zap, Skull, Plus, Minus, Swords, X } from "lucide-react";
+import { Sparkles, Shield, Heart, Zap, Skull, Plus, Minus, Swords, X, Check } from "lucide-react";
 import { usePlayerCombat, playerCombat, type PlayerRow } from "@/lib/combat-store";
+import { durationBadge } from "@/lib/effect-presets";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/player")({
@@ -89,8 +90,18 @@ function PlayerView() {
                       {r.effects.length > 0 && (
                         <div className="mt-1.5 flex flex-wrap gap-1">
                           {r.effects.map((e) => (
-                            <span key={e.id} className="text-[10px] px-1.5 py-0.5 rounded-full bg-black/40 border border-primary/30 text-gold-soft inline-flex items-center gap-1">
+                            <span
+                              key={e.id}
+                              title={e.reminder || undefined}
+                              className="text-[10px] px-1.5 py-0.5 rounded-full bg-black/40 border border-primary/30 text-gold-soft inline-flex items-center gap-1"
+                            >
                               {e.label}
+                              {durationBadge(e) && <span className="opacity-60">· {durationBadge(e)}</span>}
+                              {isPc && e.durationType === "next-attack" && (
+                                <button onClick={() => send("consume_effect", { id: r.id, effectId: e.id })} title="Used it" className="hover:text-foreground">
+                                  <Check className="w-2.5 h-2.5" />
+                                </button>
+                              )}
                               {isPc && (
                                 <button onClick={() => send("remove_effect", { id: r.id, effectId: e.id })} className="hover:text-foreground">
                                   <X className="w-2.5 h-2.5" />
@@ -152,7 +163,7 @@ function PcEditRow({ row, send }: { row: PlayerRow; send: (op: string, payload: 
           onChange={(e) => setEffect(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter" && effect.trim()) {
-              send("add_effect", { id: row.id, effect: { label: effect.trim(), duration: "", kind: "condition" } });
+              send("add_effect", { id: row.id, effect: { label: effect.trim(), kind: "condition", durationType: "indefinite" } });
               setEffect("");
             }
           }}
