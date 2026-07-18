@@ -57,6 +57,7 @@ export type PlayerRow = {
   maxHp?: number;
   tempHp?: number;
   concentrating?: boolean;
+  concentrationSaveDc?: number | null;
   // visible monsters only:
   status?: CombatantStatus;
 };
@@ -107,6 +108,7 @@ export function projectForPlayers(state: CombatState): PlayerCombatState {
         maxHp: c.maxHp,
         tempHp: c.tempHp,
         concentrating: c.concentrating != null,
+        concentrationSaveDc: c.concentrationSaveDc,
       });
     } else {
       rows.push({

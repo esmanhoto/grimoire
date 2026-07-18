@@ -152,6 +152,7 @@ class CombatEngine:
                     maxHp=c.max_hp,
                     tempHp=c.temp_hp,
                     concentrating=c.concentrating is not None,
+                    concentrationSaveDc=c.concentration_save_dc,
                 )
             else:
                 row["status"] = status_from_hp(c.hp, c.max_hp)

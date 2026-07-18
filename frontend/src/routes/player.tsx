@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { HPBar } from "@/components/grimoire/HPBar";
 import { CommitNumberInput } from "@/components/grimoire/CommitNumberInput";
-import { Sparkles, Shield, Heart, Zap, Skull, Swords, X, Check } from "lucide-react";
+import { Sparkles, Shield, Heart, Zap, Skull, Swords, X, Check, ShieldAlert } from "lucide-react";
 import { usePlayerCombat, playerCombat, type PlayerRow } from "@/lib/combat-store";
 import { durationBadge } from "@/lib/effect-presets";
 import { cn } from "@/lib/utils";
@@ -65,9 +65,21 @@ function PlayerView() {
               return (
                 <li key={r.id} className={cn("ornate-frame p-3 transition-all", isActive ? "bg-arcane/20 border-primary shadow-arcane" : "bg-black/30")}>
                   <div className="grid grid-cols-[auto_1fr_auto] items-center gap-3">
-                    <div className={cn("w-11 h-11 rounded-md grid place-items-center font-display text-lg", isActive ? "bg-arcane text-primary-foreground shadow-arcane" : "bg-black/50 text-gold border border-primary/30")}>
-                      {r.initiative}
-                    </div>
+                    {isPc ? (
+                      <CommitNumberInput
+                        value={r.initiative}
+                        onCommit={(v) => send("set_initiative", { id: r.id, value: v })}
+                        aria-label="Initiative"
+                        className={cn(
+                          "w-11 h-11 text-center rounded-md font-display text-lg focus:outline-none focus:ring-1 focus:ring-primary",
+                          isActive ? "bg-arcane text-primary-foreground shadow-arcane" : "bg-black/50 text-gold border border-primary/30",
+                        )}
+                      />
+                    ) : (
+                      <div className={cn("w-11 h-11 rounded-md grid place-items-center font-display text-lg", isActive ? "bg-arcane text-primary-foreground shadow-arcane" : "bg-black/50 text-gold border border-primary/30")}>
+                        {r.initiative}
+                      </div>
+                    )}
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
                         {isPc ? <Sparkles className="w-4 h-4 text-[var(--emerald-arcane)]" /> : <Skull className="w-4 h-4 text-[var(--blood)]" />}
@@ -138,10 +150,23 @@ function PcEditRow({ row, send }: { row: PlayerRow; send: (op: string, payload: 
   const [effect, setEffect] = useState("");
   return (
     <>
-      <div className="mt-3 grid grid-cols-4 gap-1.5">
-        <MiniField label="Init" value={row.initiative} onChange={(v) => send("set_initiative", { id: row.id, value: v })} />
+      {row.concentrationSaveDc != null && (
+        <div className="mt-2 flex items-center gap-2 text-xs text-[var(--purple-arcane)] px-2 py-1.5 rounded bg-[var(--purple-arcane)]/10 border border-[var(--purple-arcane)]/40">
+          <ShieldAlert className="w-3.5 h-3.5 shrink-0" />
+          Concentration save — CON DC {row.concentrationSaveDc}
+          <button
+            onClick={() => send("clear_concentration_reminder", { id: row.id })}
+            className="ml-auto text-muted-foreground hover:text-foreground underline underline-offset-2"
+          >held it</button>
+          <button
+            onClick={() => send("set_concentration", { id: row.id, spell: null })}
+            className="text-[var(--blood)] hover:text-foreground underline underline-offset-2"
+          >broken</button>
+        </div>
+      )}
+      <div className="mt-3 grid grid-cols-3 gap-1.5">
         <MiniField label="AC" value={row.ac ?? 10} onChange={(v) => send("set_ac", { id: row.id, value: v })} />
-        <MiniField label="Temp" value={row.tempHp ?? 0} onChange={(v) => send("set_temp_hp", { id: row.id, value: v })} />
+        <MiniField label="Temp HP" value={row.tempHp ?? 0} onChange={(v) => send("set_temp_hp", { id: row.id, value: v })} />
         <button
           onClick={() => send("set_concentration", { id: row.id, spell: row.concentrating ? null : "—" })}
           className={cn("rounded-md text-[10px] uppercase tracking-widest px-1 py-1",

@@ -23,3 +23,6 @@ campaign/
 .idea/
 .vscode/
 content/.srd-cache/
+
+# Campaign folder backups (created before bulk operations)
+campaign.backup*/

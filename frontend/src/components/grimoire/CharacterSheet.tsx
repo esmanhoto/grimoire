@@ -185,9 +185,10 @@ export function CharacterSheet({
             </div>
           )}
 
-          <div className="grid grid-cols-5 gap-2">
+          <div className="grid grid-cols-6 gap-2">
             <Stat label="AC" value={c.ac} icon={<Shield className="w-3 h-3" />} />
             <Stat label="HP" value={`${c.hp}/${c.maxHp}`} icon={<Heart className="w-3 h-3" />} highlight />
+            <Stat label="Temp HP" value={c.tempHp ?? 0} icon={<Heart className="w-3 h-3" />} />
             <Stat label="Speed" value={`${c.speed} ft`} icon={<Zap className="w-3 h-3" />} />
             <Stat label="PP" value={c.passivePerception} icon={<Eye className="w-3 h-3" />} />
             <Stat label="Insight" value={c.passiveInsight} icon={<Eye className="w-3 h-3" />} />
