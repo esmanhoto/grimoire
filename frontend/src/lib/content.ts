@@ -20,7 +20,7 @@ export type SpellEntry = {
   duration: string;
   concentration: boolean;
   body: string;
-  source: string;
+  contentSource: string;
 };
 
 export type MonsterEntry = {
@@ -41,7 +41,7 @@ export type MonsterEntry = {
   pb: number;
   passivePerception: number;
   body: string;
-  source: string;
+  contentSource: string;
 };
 
 export type ItemEntry = {
@@ -50,21 +50,23 @@ export type ItemEntry = {
   itemType: string;
   rarity: string;
   body: string;
-  source: string;
+  contentSource: string;
 };
 
-export type RuleEntry = { id: string; name: string; tag: string; body: string; source: string };
+export type RuleEntry = { id: string; name: string; tag: string; body: string; contentSource: string };
+
+export type FeatureSource = "class" | "subclass" | "species" | "background" | "feat" | "other";
 
 export type FeatureEntry = {
   id: string;
   name: string;
-  className: string;
+  source: FeatureSource;
+  origin: string;
   level: number;
   body: string;
-  source: string;
 };
 
-export type GearEntry = { id: string; name: string; category: string; body: string; source: string };
+export type GearEntry = { id: string; name: string; category: string; body: string; contentSource: string };
 
 export async function fetchContentEntry<T>(kind: ContentKind, id: string): Promise<T> {
   const r = await fetch(`/api/content/${kind}/${id}`);

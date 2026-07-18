@@ -34,7 +34,12 @@ def _meta_line(kind: str, e: dict[str, Any]) -> str:
     if kind == "item":
         return f"{e['itemType']} · {e['rarity']}"
     if kind == "feature":
-        return f"{e['className']} {e['level']}" if e.get("className") else "Feature"
+        origin = e.get("origin") or "Feature"
+        if e.get("source") == "class" and e.get("level"):
+            return f"{origin} {e['level']}"
+        if e.get("source") == "species":
+            return f"{origin} trait"
+        return origin
     if kind == "gear":
         return e.get("category") or "Gear"
     return e.get("tag") or "Rule"
@@ -51,7 +56,9 @@ class ContentStore:
                 if not path.is_file():
                     continue
                 for e in json.loads(path.read_text(encoding="utf-8")):
-                    e["source"] = source
+                    # provenance (srd vs homebrew) — must not clobber an
+                    # entry's own "source" field (feature classification)
+                    e["contentSource"] = source
                     self.entries[kind][e["id"]] = e
         for kind, by_id in self.entries.items():
             for e in by_id.values():

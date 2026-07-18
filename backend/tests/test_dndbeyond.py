@@ -8,7 +8,17 @@ FIXTURE = {
     "id": 12345678,
     "name": "Thrain Oathkeeper",
     "username": "jordan",
-    "race": {"fullName": "Mountain Dwarf", "weightSpeeds": {"normal": {"walk": 25}}},
+    "race": {
+        "fullName": "Mountain Dwarf",
+        "weightSpeeds": {"normal": {"walk": 25}},
+        "racialTraits": [
+            {"definition": {"name": "Ability Score Increases"}},
+            {"definition": {"name": "Darkvision"}},
+            {"definition": {"name": "Dwarven Resilience"}},
+        ],
+    },
+    "feats": [{"definition": {"name": "Tough"}}],
+    "background": {"definition": {"name": "Soldier"}},
     "classes": [
         {
             "level": 5,
@@ -73,9 +83,14 @@ def test_map_character_core_stats():
     athletics = next(s for s in fields["skills"] if s["name"] == "Athletics")
     assert athletics["mod"] == 10
     assert fields["passivePerception"] == 14  # 10 + 1 WIS + 3 PB
-    # boilerplate filtered, out-of-level features filtered
-    assert "Second Wind" in fields["features"]
-    assert "Hit Points" not in fields["features"]
-    assert "Indomitable" not in fields["features"]
+    # features are sourced; boilerplate and out-of-level entries filtered
+    by_name = {f["name"]: f["source"] for f in fields["features"]}
+    assert by_name["Second Wind"] == "class"
+    assert by_name["Darkvision"] == "species"
+    assert by_name["Tough"] == "feat"
+    assert by_name["Soldier"] == "background"
+    assert "Hit Points" not in by_name
+    assert "Ability Score Increases" not in by_name
+    assert "Indomitable" not in by_name
     assert "Javelin ×3" in fields["inventory"]
     assert "review" in body.lower()

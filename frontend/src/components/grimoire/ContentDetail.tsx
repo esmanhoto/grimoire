@@ -127,14 +127,22 @@ export function RuleDetail({ rule }: { rule: RuleEntry }) {
   );
 }
 
+const FEATURE_SOURCE_LABEL: Record<string, string> = {
+  class: "Class feature",
+  subclass: "Subclass feature",
+  species: "Species trait",
+  background: "Background",
+  feat: "Feat",
+};
+
 export function FeatureDetail({ feature }: { feature: FeatureEntry }) {
   return (
     <div className="space-y-3">
-      {feature.className && (
-        <p className="text-sm italic text-muted-foreground">
-          {feature.className} feature{feature.level > 0 && ` · Level ${feature.level}`}
-        </p>
-      )}
+      <p className="text-sm italic text-muted-foreground">
+        {FEATURE_SOURCE_LABEL[feature.source] ?? "Feature"}
+        {feature.origin && ` · ${feature.origin}`}
+        {feature.level > 0 && ` · Level ${feature.level}`}
+      </p>
       <SrdBody body={feature.body} />
     </div>
   );

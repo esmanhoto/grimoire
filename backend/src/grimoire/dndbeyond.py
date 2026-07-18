@@ -29,6 +29,9 @@ SKILLS: dict[str, str] = {
     "performance": "cha", "persuasion": "cha", "religion": "int",
     "sleight-of-hand": "dex", "stealth": "dex", "survival": "wis",
 }
+RACIAL_BOILERPLATE = {
+    "ability score increases", "age", "alignment", "size", "speed", "languages", "creature type",
+}
 BOILERPLATE_FEATURES = {
     "hit points", "proficiencies", "equipment", "ability score improvement",
     "core barbarian traits", "core bard traits", "core cleric traits", "core druid traits",
@@ -181,20 +184,32 @@ def map_character(d: dict[str, Any]) -> tuple[str, dict[str, Any], str]:
                 add_spell(s)
     spells.sort(key=lambda s: (s["level"], s["name"]))
 
-    # class features minus boilerplate
-    features: list[str] = []
+    # features grouped by source: class, species traits, feats, background
+    features: list[dict[str, str]] = []
+    seen_features: set[str] = set()
+
+    def add_feature(fname: str | None, source: str) -> None:
+        if fname and fname.lower() not in seen_features:
+            seen_features.add(fname.lower())
+            features.append({"name": fname, "source": source})
+
     for c in classes:
         c_level = c.get("level", 0)
         for f in c.get("classFeatures") or []:
             defn = f.get("definition") or {}
-            fname = defn.get("name")
             if (
-                fname
-                and defn.get("requiredLevel", 0) <= c_level
-                and fname.lower() not in BOILERPLATE_FEATURES
-                and fname not in features
+                defn.get("requiredLevel", 0) <= c_level
+                and (defn.get("name") or "").lower() not in BOILERPLATE_FEATURES
             ):
-                features.append(fname)
+                add_feature(defn.get("name"), "class")
+    for t in (d.get("race") or {}).get("racialTraits") or []:
+        tname = (t.get("definition") or {}).get("name")
+        if tname and tname.lower() not in RACIAL_BOILERPLATE:
+            add_feature(tname, "species")
+    for f in d.get("feats") or []:
+        add_feature((f.get("definition") or {}).get("name"), "feat")
+    bg_name = ((d.get("background") or {}).get("definition") or {}).get("name")
+    add_feature(bg_name, "background")
 
     inventory = []
     for item in d.get("inventory") or []:

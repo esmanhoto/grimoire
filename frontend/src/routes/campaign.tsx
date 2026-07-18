@@ -15,9 +15,10 @@ import {
 } from "@/components/ui/dialog";
 import {
   useCampaignIndex, useCampaignEntity, useCampaignMutations, renderWikiBody,
-  entitySubline, TYPE_LABEL, type CampaignEntity, type EntityType,
+  entitySubline, characterFromEntity, TYPE_LABEL, type CampaignEntity, type EntityType,
 } from "@/lib/campaign";
 import { CharacterForm } from "@/components/grimoire/CharacterForm";
+import { CharacterSheet } from "@/components/grimoire/CharacterSheet";
 import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 
@@ -276,7 +277,14 @@ function EntitySheet({
   return (
     <Sheet open={!!id} onOpenChange={(o) => !o && onClose()}>
       <SheetContent side="right" className="w-full sm:max-w-xl glass-panel border-l-primary/30 overflow-y-auto">
-        {entity && !editing && (
+        {entity && entity.type === "pc" && (
+          <CharacterSheet
+            c={characterFromEntity(entity)}
+            onEdit={() => onEditPc(entity)}
+            onDelete={del}
+          />
+        )}
+        {entity && entity.type !== "pc" && !editing && (
           <>
             <SheetHeader className="border-b border-border/60 pb-4">
               <SheetTitle className="font-display text-2xl text-gold tracking-wider">{entity.name}</SheetTitle>
@@ -342,7 +350,7 @@ function EntitySheet({
           </>
         )}
 
-        {entity && editing && (
+        {entity && entity.type !== "pc" && editing && (
           <>
             <SheetHeader className="border-b border-border/60 pb-4">
               <SheetTitle className="font-display text-2xl text-gold tracking-wider">Edit · {entity.name}</SheetTitle>

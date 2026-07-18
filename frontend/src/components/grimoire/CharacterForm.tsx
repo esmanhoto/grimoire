@@ -6,8 +6,30 @@ import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription,
 } from "@/components/ui/sheet";
 import { Plus, X } from "lucide-react";
-import { useCampaignMutations, type CampaignEntity, type Character } from "@/lib/campaign";
+import {
+  normalizeFeatures, useCampaignMutations,
+  type CampaignEntity, type Character, type FeatureRef,
+} from "@/lib/campaign";
+import {
+  fetchContentEntry, fuzzySearch, useContentIndex, type FeatureEntry, type IndexEntry,
+} from "@/lib/content";
 import { cn } from "@/lib/utils";
+
+const FEATURE_SOURCES: [string, string][] = [
+  ["class", "Class"],
+  ["subclass", "Subclass"],
+  ["species", "Species"],
+  ["background", "Background"],
+  ["feat", "Feat"],
+  ["other", "Other"],
+];
+
+/** Spell level from an index meta line ("Cantrip · Evocation", "Lvl 3 · …"). */
+function levelFromMeta(meta: string): number {
+  if (meta.startsWith("Cantrip")) return 0;
+  const m = meta.match(/Lvl (\d)/);
+  return m ? Number(m[1]) : 0;
+}
 
 const ABILITIES = ["str", "dex", "con", "int", "wis", "cha"] as const;
 const ABILITY_FULL: Record<(typeof ABILITIES)[number], string> = {
@@ -44,7 +66,7 @@ type FormState = {
   saves: string[];
   skills: string[];
   spells: { name: string; level: number }[];
-  features: string;
+  features: FeatureRef[];
   inventory: string;
   body: string;
 };
@@ -72,7 +94,7 @@ function fromEntity(e: CampaignEntity | null): FormState {
     saves: (f.saves as string[]) ?? [],
     skills: ((f.skills as { name: string }[]) ?? []).map((s) => s.name),
     spells: (f.spells as { name: string; level: number }[]) ?? [],
-    features: ((f.features as string[]) ?? []).join("\n"),
+    features: normalizeFeatures(f.features as (string | FeatureRef)[] | undefined),
     inventory: ((f.inventory as string[]) ?? []).join("\n"),
     body: e?.body ?? "",
   };
@@ -88,10 +110,24 @@ export function CharacterForm({
   onClose: (savedId?: string) => void;
 }) {
   const { create, update } = useCampaignMutations();
+  const contentIndex = useContentIndex();
   const [form, setForm] = useState<FormState>(() => fromEntity(entity));
   const [error, setError] = useState<string | null>(null);
   const [spellName, setSpellName] = useState("");
   const [spellLevel, setSpellLevel] = useState(0);
+  const [featName, setFeatName] = useState("");
+  const [featSource, setFeatSource] = useState("other");
+
+  const spellSuggestions = spellName.trim()
+    ? fuzzySearch(contentIndex.filter((e) => e.kind === "spell"), spellName, 6).filter(
+        (s) => !form.spells.some((x) => x.name.toLowerCase() === s.name.toLowerCase()),
+      )
+    : [];
+  const featureSuggestions = featName.trim()
+    ? fuzzySearch(contentIndex.filter((e) => e.kind === "feature"), featName, 6).filter(
+        (s) => !form.features.some((x) => x.name.toLowerCase() === s.name.toLowerCase()),
+      )
+    : [];
 
   useEffect(() => {
     if (open) {
@@ -109,6 +145,30 @@ export function CharacterForm({
       ...f,
       [key]: f[key].includes(value) ? f[key].filter((x) => x !== value) : [...f[key], value],
     }));
+
+  const addSpell = (name: string, level: number) => {
+    if (name.trim() && !form.spells.some((s) => s.name.toLowerCase() === name.trim().toLowerCase())) {
+      set("spells", [...form.spells, { name: name.trim(), level }]);
+    }
+    setSpellName("");
+  };
+
+  const addFeature = (ref: FeatureRef) => {
+    if (ref.name.trim() && !form.features.some((f) => f.name.toLowerCase() === ref.name.trim().toLowerCase())) {
+      set("features", [...form.features, { name: ref.name.trim(), source: ref.source }]);
+    }
+    setFeatName("");
+  };
+
+  // SRD feature entries know their real source (class/species/feat/…)
+  const addFeatureFromSrd = async (entry: IndexEntry) => {
+    try {
+      const full = await fetchContentEntry<FeatureEntry>("feature", entry.id);
+      addFeature({ name: full.name, source: full.source });
+    } catch {
+      addFeature({ name: entry.name, source: featSource });
+    }
+  };
 
   const save = async () => {
     if (!form.name.trim()) {
@@ -135,7 +195,7 @@ export function CharacterForm({
         mod: mod(form.abilities[a]) + pb,
       })),
       spells: form.spells,
-      features: form.features.split("\n").map((s) => s.trim()).filter(Boolean),
+      features: form.features,
       inventory: form.inventory.split("\n").map((s) => s.trim()).filter(Boolean),
     };
     setError(null);
@@ -278,14 +338,9 @@ export function CharacterForm({
               <Input
                 value={spellName}
                 onChange={(e) => setSpellName(e.target.value)}
-                placeholder="Spell name"
+                placeholder="Search the SRD, or type a homebrew name…"
                 className="h-8 text-sm bg-black/30"
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && spellName.trim()) {
-                    set("spells", [...form.spells, { name: spellName.trim(), level: spellLevel }]);
-                    setSpellName("");
-                  }
-                }}
+                onKeyDown={(e) => e.key === "Enter" && addSpell(spellName, spellLevel)}
               />
               <select
                 value={spellLevel}
@@ -296,27 +351,86 @@ export function CharacterForm({
                   <option key={l} value={l}>{l === 0 ? "Cantrip" : `Level ${l}`}</option>
                 ))}
               </select>
-              <Button
-                size="sm"
-                className="h-8 px-2"
-                onClick={() => {
-                  if (spellName.trim()) {
-                    set("spells", [...form.spells, { name: spellName.trim(), level: spellLevel }]);
-                    setSpellName("");
-                  }
-                }}
-              ><Plus className="w-4 h-4" /></Button>
+              <Button size="sm" className="h-8 px-2" onClick={() => addSpell(spellName, spellLevel)}>
+                <Plus className="w-4 h-4" />
+              </Button>
             </div>
+            {spellSuggestions.length > 0 && (
+              <ul className="mt-1 border border-primary/30 rounded-md overflow-hidden bg-black/40">
+                {spellSuggestions.map((s) => (
+                  <li key={s.id}>
+                    <button
+                      onClick={() => addSpell(s.name, levelFromMeta(s.meta))}
+                      className="w-full text-left px-3 py-1.5 text-sm hover:bg-secondary/60 flex justify-between gap-2"
+                    >
+                      <span className="truncate">{s.name}</span>
+                      <span className="text-xs text-muted-foreground shrink-0">{s.meta}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Features (one per line)">
-              <Textarea rows={5} value={form.features} onChange={(e) => set("features", e.target.value)} className="bg-black/30 text-sm" />
-            </Field>
-            <Field label="Inventory (one per line)">
-              <Textarea rows={5} value={form.inventory} onChange={(e) => set("inventory", e.target.value)} className="bg-black/30 text-sm" />
-            </Field>
+          <div>
+            <SectionLabel>Features — grouped by where they come from</SectionLabel>
+            {FEATURE_SOURCES.filter(([s]) => form.features.some((f) => f.source === s)).map(([s, label]) => (
+              <div key={s} className="mb-1.5">
+                <span className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground mr-2">{label}</span>
+                {form.features
+                  .filter((f) => f.source === s)
+                  .map((f) => (
+                    <span key={f.name} className="inline-flex items-center gap-1 text-xs px-2 py-0.5 mr-1 mb-1 rounded-full bg-primary/15 border border-primary/30">
+                      {f.name}
+                      <button onClick={() => set("features", form.features.filter((x) => x.name !== f.name))} className="hover:text-foreground">
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  ))}
+              </div>
+            ))}
+            <div className="flex gap-2">
+              <Input
+                value={featName}
+                onChange={(e) => setFeatName(e.target.value)}
+                placeholder="Search SRD features/traits/feats, or type your own…"
+                className="h-8 text-sm bg-black/30"
+                onKeyDown={(e) => e.key === "Enter" && addFeature({ name: featName, source: featSource })}
+              />
+              <select
+                value={featSource}
+                onChange={(e) => setFeatSource(e.target.value)}
+                title="Source used when adding a custom (non-SRD) feature"
+                className="bg-black/30 text-sm border border-border/60 rounded px-2"
+              >
+                {FEATURE_SOURCES.map(([s, label]) => (
+                  <option key={s} value={s}>{label}</option>
+                ))}
+              </select>
+              <Button size="sm" className="h-8 px-2" onClick={() => addFeature({ name: featName, source: featSource })}>
+                <Plus className="w-4 h-4" />
+              </Button>
+            </div>
+            {featureSuggestions.length > 0 && (
+              <ul className="mt-1 border border-primary/30 rounded-md overflow-hidden bg-black/40">
+                {featureSuggestions.map((s) => (
+                  <li key={s.id}>
+                    <button
+                      onClick={() => void addFeatureFromSrd(s)}
+                      className="w-full text-left px-3 py-1.5 text-sm hover:bg-secondary/60 flex justify-between gap-2"
+                    >
+                      <span className="truncate">{s.name}</span>
+                      <span className="text-xs text-muted-foreground shrink-0">{s.meta}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
+
+          <Field label="Inventory (one per line)">
+            <Textarea rows={5} value={form.inventory} onChange={(e) => set("inventory", e.target.value)} className="bg-black/30 text-sm" />
+          </Field>
 
           <Field label="Notes (markdown, [[wikilinks]] welcome)">
             <Textarea rows={4} value={form.body} onChange={(e) => set("body", e.target.value)} className="bg-black/30 text-sm" />

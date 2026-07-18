@@ -22,10 +22,17 @@ from pathlib import Path
 REPO_RAW = "https://raw.githubusercontent.com/downfallx/dnd-5e-srd-markdown/master"
 FILES = ["spells.md", "monsters-A-Z.md", "animals.md", "magic-items.md", "rules-glossary.md"]
 
-# Class features + mundane equipment come from the 5e-bits 2024 dataset
-# (same SRD 5.2.1 content, already structured).
+# Class/subclass features, species traits, feats, backgrounds and mundane
+# equipment come from the 5e-bits 2024 dataset (same SRD 5.2.1 content,
+# already structured).
 BITS_RAW = "https://raw.githubusercontent.com/5e-bits/5e-database/main/src/2024/en"
-BITS_FILES = ["5e-SRD-Features.json", "5e-SRD-Equipment.json"]
+BITS_FILES = [
+    "5e-SRD-Features.json",
+    "5e-SRD-Equipment.json",
+    "5e-SRD-Traits.json",
+    "5e-SRD-Feats.json",
+    "5e-SRD-Backgrounds.json",
+]
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT_DIR = ROOT / "content" / "srd"
@@ -190,20 +197,76 @@ def parse_items(text: str) -> list[dict]:
 
 
 def parse_features(data: list[dict]) -> list[dict]:
+    """Class and subclass features. `source`/`origin` drive grouping in the
+    app (a character's features are organized by where they come from)."""
     features = []
     for f in data:
         level_name = (f.get("level") or {}).get("name", "")
         level = int(level_name.rsplit(" ", 1)[1]) if level_name and level_name.rsplit(" ", 1)[-1].isdigit() else 0
+        subclass = (f.get("subclass") or {}).get("name")
         features.append(
             {
                 "id": f"feature-{f['index']}",
                 "name": f["name"],
-                "className": (f.get("class") or {}).get("name", ""),
+                "source": "subclass" if subclass else "class",
+                "origin": subclass or (f.get("class") or {}).get("name", ""),
                 "level": level,
                 "body": f.get("description", ""),
             }
         )
     return features
+
+
+def parse_traits(data: list[dict]) -> list[dict]:
+    return [
+        {
+            "id": f"feature-trait-{t['index']}",
+            "name": t["name"],
+            "source": "species",
+            "origin": ", ".join(s["name"] for s in t.get("species") or []) or "Species",
+            "level": 0,
+            "body": t.get("description", ""),
+        }
+        for t in data
+    ]
+
+
+def parse_feats(data: list[dict]) -> list[dict]:
+    return [
+        {
+            "id": f"feature-feat-{f['index']}",
+            "name": f["name"],
+            "source": "feat",
+            "origin": "Origin feat" if f.get("type") == "origin" else "Feat",
+            "level": 0,
+            "body": f.get("description", ""),
+        }
+        for f in data
+    ]
+
+
+def parse_backgrounds(data: list[dict]) -> list[dict]:
+    out = []
+    for b in data:
+        lines = []
+        if scores := b.get("ability_scores"):
+            lines.append(f"**Ability Scores:** {', '.join(s['name'] for s in scores)}")
+        if feat := b.get("feat"):
+            note = f" ({feat['note']})" if feat.get("note") else ""
+            lines.append(f"**Feat:** {feat['name']}{note}")
+        if profs := b.get("proficiencies"):
+            lines.append(f"**Proficiencies:** {', '.join(p['name'] for p in profs)}")
+        out.append(
+            {
+                "id": f"feature-bg-{b['index']}",
+                "name": b["name"],
+                "source": "background",
+                "origin": "Background",
+                "level": 0,
+                "body": "\n\n".join(lines),
+            }
+        )
+    return out
 
 
 # -- mundane equipment (5e-bits structured JSON) -----------------------------
@@ -301,7 +364,12 @@ def main() -> None:
     monsters = parse_monsters(texts["monsters-A-Z.md"]) + parse_monsters(texts["animals.md"], "##")
     items = parse_items(texts["magic-items.md"])
     rules = parse_rules(texts["rules-glossary.md"])
-    features = parse_features(json.loads(fetch("5e-SRD-Features.json", BITS_RAW)))
+    features = (
+        parse_features(json.loads(fetch("5e-SRD-Features.json", BITS_RAW)))
+        + parse_traits(json.loads(fetch("5e-SRD-Traits.json", BITS_RAW)))
+        + parse_feats(json.loads(fetch("5e-SRD-Feats.json", BITS_RAW)))
+        + parse_backgrounds(json.loads(fetch("5e-SRD-Backgrounds.json", BITS_RAW)))
+    )
     equipment = parse_equipment(json.loads(fetch("5e-SRD-Equipment.json", BITS_RAW)))
 
     # de-dupe by id, keeping first occurrence

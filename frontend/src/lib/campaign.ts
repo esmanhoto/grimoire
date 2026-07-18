@@ -24,6 +24,20 @@ export type CampaignEntity = {
   backlinks: { id: string; name: string; type: EntityType }[];
 };
 
+// A character feature with where it came from; older files may store plain
+// strings, which normalize to source "other".
+export type FeatureRef = { name: string; source: string };
+
+const KNOWN_FEATURE_SOURCES = new Set(["class", "subclass", "species", "background", "feat", "other"]);
+
+export function normalizeFeatures(features: (string | FeatureRef)[] | undefined): FeatureRef[] {
+  return (features ?? []).map((f) =>
+    typeof f === "string"
+      ? { name: f, source: "other" }
+      : { name: f.name, source: KNOWN_FEATURE_SOURCES.has(f.source) ? f.source : "other" },
+  );
+}
+
 // Same shape the character sheet / combat code has always used; now sourced
 // from campaign/pcs/*.md frontmatter instead of mock data.
 export type Character = {
@@ -45,10 +59,40 @@ export type Character = {
   saves: string[];
   skills: { name: string; mod: number }[];
   spells: { name: string; level: number }[];
-  features: string[];
+  features: (string | FeatureRef)[];
   inventory: string[];
   color: string;
 };
+
+export function characterFromEntity(p: {
+  id: string;
+  name: string;
+  fields: Record<string, unknown>;
+}): Character {
+  return {
+    id: p.id,
+    name: p.name,
+    player: "",
+    class: "",
+    level: 1,
+    race: "",
+    ac: 10,
+    hp: 1,
+    maxHp: 1,
+    passivePerception: 10,
+    passiveInsight: 10,
+    speed: 30,
+    initiativeBonus: 0,
+    abilities: { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 },
+    saves: [],
+    skills: [],
+    spells: [],
+    features: [],
+    inventory: [],
+    color: "gold",
+    ...(p.fields as Partial<Character>),
+  };
+}
 
 export const TYPE_LABEL: Record<EntityType, string> = {
   npc: "NPC",
@@ -111,29 +155,7 @@ export function useParty(): Character[] {
     queryKey: ["party"],
     queryFn: () => api<{ party: { id: string; name: string; fields: Record<string, unknown> }[] }>("/api/party"),
   });
-  return (data?.party ?? []).map((p) => ({
-    id: p.id,
-    name: p.name,
-    player: "",
-    class: "",
-    level: 1,
-    race: "",
-    ac: 10,
-    hp: 1,
-    maxHp: 1,
-    passivePerception: 10,
-    passiveInsight: 10,
-    speed: 30,
-    initiativeBonus: 0,
-    abilities: { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 },
-    saves: [],
-    skills: [],
-    spells: [],
-    features: [],
-    inventory: [],
-    color: "gold",
-    ...(p.fields as Partial<Character>),
-  }));
+  return (data?.party ?? []).map(characterFromEntity);
 }
 
 export function useCampaignMutations() {
