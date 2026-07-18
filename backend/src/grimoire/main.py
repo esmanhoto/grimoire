@@ -175,12 +175,49 @@ class DdbImport(BaseModel):
 
 @app.post("/api/import/dndbeyond")
 def import_dndbeyond(req: DdbImport) -> dict:
-    from .dndbeyond import ImportError_, extract_id, fetch_character, map_character
+    from .dndbeyond import (
+        ImportError_, extract_id, fetch_character, fetch_official_source_ids, map_character,
+    )
 
     try:
         data = fetch_character(extract_id(req.idOrUrl))
-        name, fields, body = map_character(data)
+        name, fields, body = map_character(data, fetch_official_source_ids())
         return campaign.create("pc", name, fields, body)
+    except (ImportError_, CampaignError) as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+class DdbResync(BaseModel):
+    id: str
+
+
+@app.post("/api/import/dndbeyond/resync")
+def resync_dndbeyond(req: DdbResync) -> dict:
+    """Re-fetch an imported PC from D&D Beyond and update its DDB-owned fields.
+
+    Local-only state survives: color, temp HP, notes body, and the entity's
+    id/name (combat and wikilinks reference them). Current HP carries damage
+    taken across the sync; a max-HP increase raises current HP by the same
+    amount.
+    """
+    from .dndbeyond import ImportError_, fetch_character, fetch_official_source_ids, map_character
+
+    entity = campaign.get(req.id)
+    if entity is None:
+        raise HTTPException(status_code=404, detail=f"no entity '{req.id}'")
+    old = entity.get("fields") or {}
+    ddb_id = old.get("ddbId")
+    if not ddb_id:
+        raise HTTPException(status_code=400, detail="this PC wasn't imported from D&D Beyond")
+
+    try:
+        data = fetch_character(str(ddb_id))
+        _name, fields, _body = map_character(data, fetch_official_source_ids())
+        fields.pop("color", None)
+        old_max, old_hp = old.get("maxHp"), old.get("hp")
+        if isinstance(old_max, int) and isinstance(old_hp, int):
+            fields["hp"] = max(0, min(fields["maxHp"], old_hp + (fields["maxHp"] - old_max)))
+        return campaign.update(req.id, fields=fields)
     except (ImportError_, CampaignError) as e:
         raise HTTPException(status_code=400, detail=str(e))
 

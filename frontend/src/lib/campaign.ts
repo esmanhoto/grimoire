@@ -62,6 +62,7 @@ export type Character = {
   features: (string | FeatureRef)[];
   inventory: string[];
   color: string;
+  ddbId?: number;
 };
 
 export function characterFromEntity(p: {
@@ -182,7 +183,12 @@ export function useCampaignMutations() {
     mutationFn: (id: string) => api<{ deleted: string }>(`/api/campaign/${id}`, { method: "DELETE" }),
     onSuccess: invalidate,
   });
-  return { create, update, remove };
+  const resync = useMutation({
+    mutationFn: (id: string) =>
+      api<CampaignEntity>("/api/import/dndbeyond/resync", { method: "POST", body: JSON.stringify({ id }) }),
+    onSuccess: invalidate,
+  });
+  return { create, update, remove, resync };
 }
 
 /** Render an entity body: markdown plus [[wikilinks]] as clickable anchors

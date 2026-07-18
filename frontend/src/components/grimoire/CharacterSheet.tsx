@@ -2,7 +2,7 @@ import { useLayoutEffect, useRef, useState } from "react";
 import { normalizeFeatures, useCampaignMutations, type Character } from "@/lib/campaign";
 import { ContentDetail } from "./ContentDetail";
 import { CommitNumberInput } from "./CommitNumberInput";
-import { Eye, Shield, Heart, Zap, ArrowLeft, ChevronDown, Pencil, Trash2 } from "lucide-react";
+import { Eye, Shield, Heart, Zap, ArrowLeft, ChevronDown, Pencil, Trash2, RefreshCw } from "lucide-react";
 import { SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { useContentIndex, type ContentKind, type IndexEntry } from "@/lib/content";
@@ -110,7 +110,7 @@ export function CharacterSheet({
 }) {
   const [detail, setDetail] = useState<{ kind: ContentKind; id: string; name: string } | null>(null);
   const index = useContentIndex();
-  const { update } = useCampaignMutations();
+  const { update, resync } = useCampaignMutations();
   const rootRef = useRef<HTMLDivElement>(null);
   const savedScroll = useRef(0);
   const ab = c.abilities;
@@ -176,16 +176,36 @@ export function CharacterSheet({
         </SheetHeader>
         <div className="py-4 space-y-6">
           {(onEdit || onDelete) && (
-            <div className="flex gap-2">
-              {onEdit && (
-                <Button size="sm" variant="outline" className="gap-1.5 border-primary/40" onClick={onEdit}>
-                  <Pencil className="w-3.5 h-3.5" /> Edit
-                </Button>
-              )}
-              {onDelete && (
-                <Button size="sm" variant="outline" className="gap-1.5 border-[var(--blood)]/50 text-[var(--blood)] hover:bg-[var(--blood)]/10" onClick={onDelete}>
-                  <Trash2 className="w-3.5 h-3.5" /> Delete
-                </Button>
+            <div className="space-y-1.5">
+              <div className="flex gap-2">
+                {onEdit && (
+                  <Button size="sm" variant="outline" className="gap-1.5 border-primary/40" onClick={onEdit}>
+                    <Pencil className="w-3.5 h-3.5" /> Edit
+                  </Button>
+                )}
+                {c.ddbId != null && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="gap-1.5 border-primary/40"
+                    disabled={resync.isPending}
+                    onClick={() => resync.mutate(c.id)}
+                    title="Re-fetch from D&D Beyond. Keeps color, notes, and current HP."
+                  >
+                    <RefreshCw className={cn("w-3.5 h-3.5", resync.isPending && "animate-spin")} />
+                    {resync.isPending ? "Syncing…" : "Re-sync"}
+                  </Button>
+                )}
+                {onDelete && (
+                  <Button size="sm" variant="outline" className="gap-1.5 border-[var(--blood)]/50 text-[var(--blood)] hover:bg-[var(--blood)]/10" onClick={onDelete}>
+                    <Trash2 className="w-3.5 h-3.5" /> Delete
+                  </Button>
+                )}
+              </div>
+              {resync.isError && (
+                <p className="text-xs text-[var(--blood)]">
+                  {resync.error instanceof Error ? resync.error.message : "Re-sync failed"}
+                </p>
               )}
             </div>
           )}

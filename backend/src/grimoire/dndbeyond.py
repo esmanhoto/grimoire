@@ -16,6 +16,14 @@ import urllib.request
 from typing import Any
 
 DDB_URL = "https://character-service.dndbeyond.com/character/v5/character/{id}"
+CONFIG_URL = "https://www.dndbeyond.com/api/config/json"
+
+# DDB source categories for official WotC rulebooks (from CONFIG_URL's
+# sourceCategories): 1 = 5e Expanded, 24 = 5.5e Core, 26 = 5e Core,
+# 38 = 5.5e Expanded. Partner publishers (Kobold Press, Avantris, ...) have
+# their own categories; DDB attaches their optional campaign mechanics to
+# every character as pseudo-feats, which we don't want on the sheet.
+OFFICIAL_SOURCE_CATEGORIES = {1, 24, 26, 38}
 
 ABILITIES = ["str", "dex", "con", "int", "wis", "cha"]
 ABILITY_NAMES = {
@@ -72,6 +80,44 @@ def fetch_character(char_id: str) -> dict[str, Any]:
     return payload.get("data", payload)
 
 
+_official_sources: set[int] | None = None
+
+
+def fetch_official_source_ids() -> set[int] | None:
+    """Ids of sources in official WotC categories, from DDB's public config.
+
+    Cached for the process lifetime. Returns None when the config can't be
+    fetched — callers then keep all feats rather than guessing.
+    """
+    global _official_sources
+    if _official_sources is not None:
+        return _official_sources
+    req = urllib.request.Request(
+        CONFIG_URL,
+        headers={"User-Agent": "Mozilla/5.0 (Grimoire local import)", "Accept": "application/json"},
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=15) as r:
+            cfg = json.loads(r.read().decode("utf-8"))
+    except Exception:
+        return None
+    _official_sources = {
+        s["id"]
+        for s in cfg.get("sources") or []
+        if s.get("id") and s.get("sourceCategoryId") in OFFICIAL_SOURCE_CATEGORIES
+    }
+    return _official_sources
+
+
+def _is_official_feat(defn: dict[str, Any], official_sources: set[int] | None) -> bool:
+    if official_sources is None:
+        return True
+    source_ids = [s.get("sourceId") for s in defn.get("sources") or [] if s.get("sourceId")]
+    if not source_ids:
+        return True  # no provenance on the feat — give it the benefit of the doubt
+    return any(sid in official_sources for sid in source_ids)
+
+
 def _mod(score: int) -> int:
     return (score - 10) // 2
 
@@ -85,8 +131,14 @@ def _modifiers(d: dict[str, Any]) -> list[dict[str, Any]]:
     return out
 
 
-def map_character(d: dict[str, Any]) -> tuple[str, dict[str, Any], str]:
-    """Return (name, pc-entity fields, body) from a DDB character payload."""
+def map_character(
+    d: dict[str, Any], official_sources: set[int] | None = None
+) -> tuple[str, dict[str, Any], str]:
+    """Return (name, pc-entity fields, body) from a DDB character payload.
+
+    official_sources filters the feats array down to official-rulebook feats
+    (see fetch_official_source_ids); None keeps everything.
+    """
     name = d.get("name") or "Imported Character"
     classes = d.get("classes") or []
     level = sum(c.get("level", 0) for c in classes) or 1
@@ -207,7 +259,9 @@ def map_character(d: dict[str, Any]) -> tuple[str, dict[str, Any], str]:
         if tname and tname.lower() not in RACIAL_BOILERPLATE:
             add_feature(tname, "species")
     for f in d.get("feats") or []:
-        add_feature((f.get("definition") or {}).get("name"), "feat")
+        defn = f.get("definition") or {}
+        if _is_official_feat(defn, official_sources):
+            add_feature(defn.get("name"), "feat")
     bg_name = ((d.get("background") or {}).get("definition") or {}).get("name")
     add_feature(bg_name, "background")
 

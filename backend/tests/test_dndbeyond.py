@@ -94,3 +94,60 @@ def test_map_character_core_stats():
     assert "Indomitable" not in by_name
     assert "Javelin ×3" in fields["inventory"]
     assert "review" in body.lower()
+
+
+def test_feat_source_filter():
+    # PHB feat (145, official), third-party pseudo-feat (239), one with no
+    # source info at all — only the third-party one is dropped, and only when
+    # an official-source set is provided.
+    payload = {
+        **FIXTURE,
+        "feats": [
+            {"definition": {"name": "Tough", "sources": [{"sourceId": 145}]}},
+            {"definition": {"name": "Runestones", "sources": [{"sourceId": 239}]}},
+            {"definition": {"name": "Mystery Feat"}},
+        ],
+    }
+    _, fields, _ = map_character(payload, official_sources={145, 148})
+    feats = [f["name"] for f in fields["features"] if f["source"] == "feat"]
+    assert feats == ["Tough", "Mystery Feat"]
+
+    # without the set (config fetch failed) everything is kept
+    _, fields, _ = map_character(payload, official_sources=None)
+    feats = [f["name"] for f in fields["features"] if f["source"] == "feat"]
+    assert feats == ["Tough", "Runestones", "Mystery Feat"]
+
+
+def test_resync_endpoint_preserves_local_state(tmp_path, monkeypatch):
+    from fastapi.testclient import TestClient
+    from grimoire.campaign import CampaignStore
+    import grimoire.main as main
+
+    monkeypatch.setattr(main, "campaign", CampaignStore(tmp_path / "campaign"))
+    monkeypatch.setattr("grimoire.dndbeyond.fetch_character", lambda cid: FIXTURE)
+    monkeypatch.setattr("grimoire.dndbeyond.fetch_official_source_ids", lambda: None)
+    client = TestClient(main.app)
+
+    # import once, then give the PC local-only state: color, damage, notes
+    r = client.post("/api/import/dndbeyond", json={"idOrUrl": "12345678"})
+    assert r.status_code == 200
+    pc = r.json()
+    main.campaign.update(
+        pc["id"],
+        fields={"color": "purple", "hp": 20, "tempHp": 5},
+        body="My table notes.",
+    )
+
+    r = client.post("/api/import/dndbeyond/resync", json={"id": pc["id"]})
+    assert r.status_code == 200
+    synced = r.json()["fields"]
+    assert synced["maxHp"] == 44  # DDB-owned fields refreshed
+    assert synced["color"] == "purple"  # local-only fields survive
+    assert synced["tempHp"] == 5
+    assert synced["hp"] == 20  # damage taken carries over (maxHp unchanged)
+    assert r.json()["body"] == "My table notes."
+
+    # a PC without a ddbId can't be re-synced
+    plain = main.campaign.create("pc", "Handmade Hero", {"maxHp": 10}, "")
+    r = client.post("/api/import/dndbeyond/resync", json={"id": plain["id"]})
+    assert r.status_code == 400
