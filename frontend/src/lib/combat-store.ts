@@ -52,6 +52,7 @@ export type PlayerRow = {
   initiative: number;
   effects: Effect[];
   // PCs only:
+  ref?: string | null;
   ac?: number;
   hp?: number;
   maxHp?: number;

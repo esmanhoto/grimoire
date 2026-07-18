@@ -147,6 +147,7 @@ class CombatEngine:
             }
             if c.kind == "pc":
                 row.update(
+                    ref=c.ref,
                     ac=c.ac,
                     hp=c.hp,
                     maxHp=c.max_hp,

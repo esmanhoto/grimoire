@@ -2,8 +2,10 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { HPBar } from "@/components/grimoire/HPBar";
 import { CommitNumberInput } from "@/components/grimoire/CommitNumberInput";
-import { Sparkles, Shield, Heart, Zap, Skull, X, Check, ShieldAlert } from "lucide-react";
+import { Shield, Heart, Zap, Skull, X, Check, ShieldAlert } from "lucide-react";
 import { usePlayerCombat, playerCombat, type PlayerRow } from "@/lib/combat-store";
+import { useParty } from "@/lib/campaign";
+import { classIcon } from "@/lib/class-icons";
 import { durationBadge } from "@/lib/effect-presets";
 import { cn } from "@/lib/utils";
 
@@ -13,6 +15,7 @@ export const Route = createFileRoute("/player")({
 
 function PlayerView() {
   const state = usePlayerCombat();
+  const party = useParty();
   const rows = state.combatants;
   const activeId = state.turnId ?? rows[0]?.id ?? null;
   const activeRow = rows.find((r) => r.id === activeId);
@@ -86,7 +89,14 @@ function PlayerView() {
                     )}
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
-                        {isPc ? <Sparkles className="w-4 h-4 text-[var(--emerald-arcane)]" /> : <Skull className="w-4 h-4 text-[var(--blood)]" />}
+                        {isPc ? (
+                          (() => {
+                            const Icon = classIcon(party.find((p) => p.id === r.ref)?.class);
+                            return <Icon className="w-4 h-4 text-[var(--emerald-arcane)]" />;
+                          })()
+                        ) : (
+                          <Skull className="w-4 h-4 text-[var(--blood)]" />
+                        )}
                         <span className={cn("font-display truncate", isActive ? "text-gold text-lg" : "text-base")}>{r.name}</span>
                       </div>
                       {isPc ? (

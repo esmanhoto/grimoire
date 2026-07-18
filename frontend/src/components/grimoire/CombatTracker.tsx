@@ -21,6 +21,7 @@ import {
 } from "@/lib/combat-store";
 import { useParty } from "@/lib/campaign";
 import { useActiveSession } from "@/lib/session";
+import { classIcon } from "@/lib/class-icons";
 import {
   useContentIndex, fuzzySearch, fetchContentEntry, type MonsterEntry,
 } from "@/lib/content";
@@ -140,17 +141,14 @@ export function CombatTracker({
               <div className="min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   {c.kind === "pc" ? (
-                    <Sparkles className="w-3.5 h-3.5 text-[var(--emerald-arcane)] shrink-0" />
+                    (() => {
+                      const Icon = classIcon(party.find((p) => p.id === c.ref)?.class);
+                      return <Icon className="w-3.5 h-3.5 text-[var(--emerald-arcane)] shrink-0" />;
+                    })()
                   ) : (
                     <Skull className="w-3.5 h-3.5 text-[var(--blood)] shrink-0" />
                   )}
                   <span className={cn("font-medium truncate", active && "text-gold")}>{c.name}</span>
-
-                  {view === "dm" && (
-                    <span className="text-[10px] text-muted-foreground flex items-center gap-1">
-                      <Shield className="w-3 h-3" /> {c.ac}
-                    </span>
-                  )}
 
                   {c.concentrating && (
                     <Badge variant="outline" className="border-[var(--purple-arcane)]/60 text-[var(--purple-arcane)] gap-1 text-[10px] h-5">
@@ -187,7 +185,10 @@ export function CombatTracker({
                 <div className="mt-1 flex items-center gap-2">
                   {view === "dm" || c.kind === "pc" ? (
                     <>
-                      <div className="text-[11px] tabular-nums w-20 shrink-0">
+                      <span className="text-[11px] text-muted-foreground flex items-center gap-1 shrink-0">
+                        <Shield className="w-3 h-3" /> {c.ac}
+                      </span>
+                      <div className="text-[11px] tabular-nums shrink-0">
                         <span className={cn(c.hp / c.maxHp <= 0.33 ? "text-[var(--blood)]" : "text-foreground")}>{c.hp}</span>
                         <span className="text-muted-foreground">/{c.maxHp}</span>
                         {c.tempHp > 0 && <span className="text-[var(--purple-arcane)]"> +{c.tempHp}</span>}
