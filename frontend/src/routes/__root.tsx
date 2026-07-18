@@ -1,4 +1,4 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-query";
 import {
   Outlet,
   Link,
@@ -187,7 +187,20 @@ function TopNav() {
 }
 
 function PlayerViewQR() {
-  const playerUrl = typeof window !== "undefined" ? `${window.location.origin}/player` : "/player";
+  // Phones can't dial "localhost" (that's themselves) — ask the backend for
+  // the machine's LAN address and encode that in the QR instead.
+  const { data } = useQuery({
+    queryKey: ["server-info"],
+    queryFn: async () => {
+      const r = await fetch("/api/server-info");
+      if (!r.ok) throw new Error("no server info");
+      return (await r.json()) as { lanUrl: string };
+    },
+    staleTime: 60_000,
+  });
+  const isLocalhost = ["localhost", "127.0.0.1"].includes(window.location.hostname);
+  const base = isLocalhost && data?.lanUrl ? data.lanUrl : window.location.origin;
+  const playerUrl = `${base}/player`;
   return (
     <Dialog>
       <DialogTrigger asChild>
@@ -209,6 +222,10 @@ function PlayerViewQR() {
           <div className="p-4 rounded-xl bg-parchment ornate-frame glow-gold">
             <QRCodeSVG value={playerUrl} size={200} bgColor="transparent" fgColor="#1a1108" level="M" />
           </div>
+          <code className="text-sm text-gold select-all">{playerUrl}</code>
+          <p className="text-xs text-muted-foreground text-center max-w-xs">
+            The phone must be on the same Wi-Fi (or hotspot) network as this machine.
+          </p>
           <a
             href="/player"
             target="_blank"

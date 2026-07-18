@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+import socket
 from datetime import datetime
 from pathlib import Path
 
@@ -69,6 +70,24 @@ hub = Hub()
 @app.get("/api/health")
 async def health() -> dict:
     return {"ok": True, "app": "grimoire"}
+
+
+def _lan_ip() -> str:
+    """The machine's LAN address — what phones on the same network dial."""
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        s.connect(("10.255.255.255", 1))  # no packets sent; just picks the route
+        return s.getsockname()[0]
+    except OSError:
+        return "127.0.0.1"
+    finally:
+        s.close()
+
+
+@app.get("/api/server-info")
+async def server_info() -> dict:
+    port = int(os.environ.get("GRIMOIRE_PORT", "8010"))
+    return {"lanUrl": f"http://{_lan_ip()}:{port}"}
 
 
 @app.get("/api/combat")
