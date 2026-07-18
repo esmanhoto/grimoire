@@ -4,7 +4,7 @@ import { HPBar, statusFromHp } from "./HPBar";
 import { CommitNumberInput } from "./CommitNumberInput";
 import {
   Swords, ChevronRight, ChevronLeft, Eye, EyeOff, Plus, X, Check, Dices,
-  Shield, Sparkles, Users, Skull, Zap, ShieldAlert,
+  Shield, Heart, Users, Skull, Zap, ShieldAlert,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -188,7 +188,8 @@ export function CombatTracker({
                       <span className="text-[11px] text-muted-foreground flex items-center gap-1 shrink-0">
                         <Shield className="w-3 h-3" /> {c.ac}
                       </span>
-                      <div className="text-[11px] tabular-nums shrink-0">
+                      <div className="text-[11px] tabular-nums shrink-0 flex items-center gap-1">
+                        <Heart className="w-3 h-3 text-muted-foreground" />
                         <span className={cn(c.hp / c.maxHp <= 0.33 ? "text-[var(--blood)]" : "text-foreground")}>{c.hp}</span>
                         <span className="text-muted-foreground">/{c.maxHp}</span>
                         {c.tempHp > 0 && <span className="text-[var(--purple-arcane)]"> +{c.tempHp}</span>}
