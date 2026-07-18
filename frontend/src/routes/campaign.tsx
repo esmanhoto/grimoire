@@ -5,7 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  BookOpen, Users, MapPin, Flag, Sparkles, Plus, Link2, Pencil, Trash2, CornerUpLeft, User,
+  BookOpen, Users, MapPin, Flag, Scroll, Plus, Link2, Pencil, Trash2, CornerUpLeft, User,
+  Search as SearchIcon, X,
 } from "lucide-react";
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription,
@@ -17,6 +18,7 @@ import {
   useCampaignIndex, useCampaignEntity, useCampaignMutations, renderWikiBody,
   entitySubline, characterFromEntity, TYPE_LABEL, type CampaignEntity, type EntityType,
 } from "@/lib/campaign";
+import { fuzzySearch } from "@/lib/content";
 import { CharacterForm } from "@/components/grimoire/CharacterForm";
 import { CharacterSheet } from "@/components/grimoire/CharacterSheet";
 import { useQueryClient } from "@tanstack/react-query";
@@ -33,16 +35,34 @@ const tabs: { key: EntityType; label: string; icon: typeof Users }[] = [
   { key: "npc", label: "NPCs", icon: Users },
   { key: "location", label: "Locations", icon: MapPin },
   { key: "faction", label: "Factions", icon: Flag },
-  { key: "quest", label: "Quests", icon: Sparkles },
+  { key: "quest", label: "Quests", icon: Scroll },
   { key: "recap", label: "Recaps", icon: BookOpen },
   { key: "pc", label: "Party", icon: User },
 ];
+
+const TAB_STORAGE_KEY = "grimoire-campaign-tab";
+
+// PC card color accent, matching the dashboard party cards
+const COLOR_VAR: Record<string, string> = {
+  gold: "--gold",
+  purple: "--purple-arcane",
+  emerald: "--emerald-arcane",
+  ember: "--blood",
+};
 
 function CampaignPage() {
   const { open } = Route.useSearch();
   const navigate = useNavigate({ from: "/campaign" });
   const entities = useCampaignIndex();
-  const [tab, setTab] = useState<EntityType>("npc");
+  const [tab, setTabState] = useState<EntityType>(() => {
+    const stored = localStorage.getItem(TAB_STORAGE_KEY) as EntityType | null;
+    return stored && stored in TYPE_LABEL ? stored : "npc";
+  });
+  const setTab = (t: EntityType) => {
+    setTabState(t);
+    localStorage.setItem(TAB_STORAGE_KEY, t);
+  };
+  const [filter, setFilter] = useState("");
   const [openId, setOpenId] = useState<string | null>(null);
   const [pcForm, setPcForm] = useState<{ entity: CampaignEntity | null } | null>(null);
 
@@ -56,7 +76,8 @@ function CampaignPage() {
     }
   }, [open, navigate]);
 
-  const data = entities.filter((e) => e.type === tab);
+  const inTab = entities.filter((e) => e.type === tab);
+  const data = filter.trim() ? fuzzySearch(inTab, filter, 60) : inTab;
   const IconFor = tabs.find((t) => t.key === tab)!.icon;
 
   return (
@@ -84,30 +105,58 @@ function CampaignPage() {
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-1 ornate-frame p-1 w-fit">
-        {tabs.map((t) => {
-          const active = tab === t.key;
-          const Icon = t.icon;
-          const count = entities.filter((e) => e.type === t.key).length;
-          return (
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap gap-1 ornate-frame p-1 w-fit">
+          {tabs.map((t) => {
+            const active = tab === t.key;
+            const Icon = t.icon;
+            const count = entities.filter((e) => e.type === t.key).length;
+            return (
+              <button
+                key={t.key}
+                onClick={() => setTab(t.key)}
+                className={cn(
+                  "px-4 py-2 rounded-md text-sm flex items-center gap-2 transition",
+                  active ? "bg-gold-gradient text-primary-foreground" : "text-muted-foreground hover:text-gold hover:bg-secondary/40",
+                )}
+              >
+                <Icon className="w-4 h-4" /> {t.label}
+                <span className={cn("text-[10px]", active ? "opacity-80" : "text-muted-foreground/70")}>{count}</span>
+              </button>
+            );
+          })}
+        </div>
+        <div className="relative flex-1 min-w-52 max-w-96">
+          <SearchIcon className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+          <Input
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+            placeholder={`Filter ${TYPE_LABEL[tab].toLowerCase()}s…`}
+            className="pl-10 pr-9 bg-black/30 border-border/60"
+          />
+          {filter && (
             <button
-              key={t.key}
-              onClick={() => setTab(t.key)}
-              className={cn(
-                "px-4 py-2 rounded-md text-sm flex items-center gap-2 transition",
-                active ? "bg-gold-gradient text-primary-foreground" : "text-muted-foreground hover:text-gold hover:bg-secondary/40",
-              )}
+              onClick={() => setFilter("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
             >
-              <Icon className="w-4 h-4" /> {t.label}
-              <span className={cn("text-[10px]", active ? "opacity-80" : "text-muted-foreground/70")}>{count}</span>
+              <X className="w-4 h-4" />
             </button>
-          );
-        })}
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         {data.map((item) => (
-          <button key={item.id} onClick={() => setOpenId(item.id)} className="text-left glass-panel p-4 hover:scale-[1.01] transition group">
+          <button
+            key={item.id}
+            onClick={() => setOpenId(item.id)}
+            className="text-left glass-panel p-4 hover:scale-[1.01] transition group"
+            style={
+              item.type === "pc"
+                ? { borderTop: `2px solid var(${COLOR_VAR[String(item.fields.color)] ?? "--gold"})` }
+                : undefined
+            }
+          >
             <div className="flex items-start gap-3">
               <div className="w-11 h-11 rounded-lg bg-arcane grid place-items-center shrink-0 shadow-arcane">
                 <IconFor className="w-5 h-5 text-primary-foreground" />

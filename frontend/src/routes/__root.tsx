@@ -7,7 +7,7 @@ import {
   useRouterState,
 } from "@tanstack/react-router";
 import { QRCodeSVG } from "qrcode.react";
-import { Sparkles, LayoutDashboard, ScrollText, Mic2, BookOpen, Smartphone } from "lucide-react";
+import { LayoutDashboard, ScrollText, Mic2, BookOpen, Smartphone } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -121,11 +121,13 @@ function TopNav() {
     <header className="sticky top-0 z-40 border-b border-border/60 backdrop-blur-xl bg-background/40">
       <div className="max-w-[1600px] mx-auto px-4 md:px-8 h-16 flex items-center gap-6">
         <Link to="/" className="flex items-center gap-2.5 group">
-          <div className="relative w-9 h-9 rounded-lg bg-arcane grid place-items-center glow-arcane">
-            <Sparkles className="w-5 h-5 text-primary-foreground" />
-          </div>
+          <img
+            src="/logo-mark.png"
+            alt="DM Grimoire"
+            className="w-9 h-9 rounded-lg object-cover ring-1 ring-[var(--gold)]/50 glow-gold"
+          />
           <div className="leading-tight">
-            <div className="font-display text-lg tracking-widest text-gold">GRIMOIRE</div>
+            <div className="font-display text-lg tracking-widest text-gold">DM GRIMOIRE</div>
             <div className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground -mt-0.5">
               DM's Companion
             </div>

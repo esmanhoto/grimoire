@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { HPBar } from "@/components/grimoire/HPBar";
 import { CommitNumberInput } from "@/components/grimoire/CommitNumberInput";
-import { Sparkles, Shield, Heart, Zap, Skull, Swords, X, Check, ShieldAlert } from "lucide-react";
+import { Sparkles, Shield, Heart, Zap, Skull, X, Check, ShieldAlert } from "lucide-react";
 import { usePlayerCombat, playerCombat, type PlayerRow } from "@/lib/combat-store";
 import { durationBadge } from "@/lib/effect-presets";
 import { cn } from "@/lib/utils";
@@ -23,11 +23,13 @@ function PlayerView() {
     <div className="min-h-screen">
       <header className="sticky top-0 z-30 backdrop-blur-xl bg-background/60 border-b border-primary/30">
         <div className="max-w-md mx-auto px-4 py-3 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-arcane grid place-items-center glow-arcane">
-            <Sparkles className="w-5 h-5 text-primary-foreground" />
-          </div>
+          <img
+            src="/logo-mark.png"
+            alt="DM Grimoire"
+            className="w-10 h-10 rounded-lg object-cover ring-1 ring-[var(--gold)]/50 glow-gold"
+          />
           <div className="flex-1 min-w-0">
-            <div className="font-display text-xl text-gold tracking-widest leading-none">GRIMOIRE</div>
+            <div className="font-display text-xl text-gold tracking-widest leading-none">DM GRIMOIRE</div>
             <div className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground mt-0.5">Table View</div>
           </div>
           {state.active && (
@@ -41,9 +43,11 @@ function PlayerView() {
 
       {!state.active ? (
         <div className="max-w-md mx-auto px-4 py-20 text-center space-y-4">
-          <div className="w-16 h-16 mx-auto rounded-2xl bg-arcane grid place-items-center glow-arcane">
-            <Swords className="w-8 h-8 text-primary-foreground" />
-          </div>
+          <img
+            src="/logo.png"
+            alt="DM Grimoire"
+            className="w-44 h-44 mx-auto rounded-full ring-1 ring-[var(--gold)]/40 glow-gold"
+          />
           <div className="font-display text-2xl text-gold tracking-wider">No combat right now</div>
           <p className="text-sm text-muted-foreground">
             When the DM starts combat, initiative order will appear here. Keep this page open.
