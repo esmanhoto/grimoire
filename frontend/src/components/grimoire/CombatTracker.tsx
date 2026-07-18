@@ -4,7 +4,7 @@ import { HPBar, statusFromHp } from "./HPBar";
 import { CommitNumberInput } from "./CommitNumberInput";
 import {
   Swords, ChevronRight, ChevronLeft, Eye, EyeOff, Plus, X, Check, Dices,
-  Shield, Sparkles, Users, Skull, Search, Zap, ShieldAlert,
+  Shield, Sparkles, Users, Skull, Zap, ShieldAlert,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -27,12 +27,10 @@ import {
 import { cn } from "@/lib/utils";
 
 export function CombatTracker({
-  onOpenMonster,
   view = "dm",
   onViewChange,
   onEnded,
 }: {
-  onOpenMonster?: (monsterId: string) => void;
   view?: "dm" | "players";
   onViewChange?: (v: "dm" | "players") => void;
   onEnded?: () => void;
@@ -258,15 +256,6 @@ export function CombatTracker({
                     title={c.visibleToPlayers ? "Hide from players" : "Reveal to players"}
                   >
                     {c.visibleToPlayers ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4 text-[var(--blood)]" />}
-                  </button>
-                )}
-                {view === "dm" && c.kind === "monster" && c.ref && (
-                  <button
-                    onClick={() => onOpenMonster?.(c.ref!)}
-                    className="p-1.5 rounded hover:bg-secondary/60 text-muted-foreground hover:text-gold"
-                    title="Open stat block"
-                  >
-                    <Search className="w-4 h-4" />
                   </button>
                 )}
                 {view === "dm" && (

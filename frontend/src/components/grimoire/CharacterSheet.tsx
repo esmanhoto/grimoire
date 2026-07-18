@@ -275,7 +275,7 @@ export function CharacterSheet({
             )}
             {FEATURE_GROUPS.filter(([source]) => features.some((f) => f.source === source)).map(
               ([source, label]) => (
-                <div key={source} className="mt-2">
+                <div key={source} className="mt-2 mb-4 last:mb-0">
                   <div className="text-[10px] uppercase tracking-[0.25em] text-gold-soft mb-1">{label}</div>
                   <ul className="space-y-1 text-sm">
                     {features

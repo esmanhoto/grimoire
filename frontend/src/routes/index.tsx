@@ -1,20 +1,19 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Panel } from "@/components/grimoire/Panel";
 import { PartyPanel } from "@/components/grimoire/PartyPanel";
 import { SearchPanel } from "@/components/grimoire/SearchPanel";
 import { CombatTracker } from "@/components/grimoire/CombatTracker";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Compass, Swords, Landmark, Users, ScrollText, StickyNote, MapPin, Eye, Skull, Sparkles, Shield, Heart, Search } from "lucide-react";
+import { Compass, Swords, Landmark, Users, ScrollText, StickyNote, MapPin, Eye, Skull, Sparkles, Shield, Heart } from "lucide-react";
 import { npcs } from "@/lib/mock-data";
-import { useDmCombat, startCombatWithParty } from "@/lib/combat-store";
+import { useDmCombat, startCombatWithParty, sortCombatants } from "@/lib/combat-store";
 import { useCampaignIndex, useCampaignMutations, useParty } from "@/lib/campaign";
 import { useActiveSession, useSessionMutations } from "@/lib/session";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useContentEntry, type MonsterEntry } from "@/lib/content";
-import { ContentDetail, MonsterDetail } from "@/components/grimoire/ContentDetail";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
+import { MonsterDetail } from "@/components/grimoire/ContentDetail";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/")({
@@ -26,7 +25,6 @@ type Mode = "exploration" | "combat";
 function Dashboard() {
   const [mode, setMode] = useState<Mode>("exploration");
   const [playerView, setPlayerView] = useState<"dm" | "players">("dm");
-  const [openMonsterId, setOpenMonsterId] = useState<string | null>(null);
   const combat = useDmCombat();
   const party = useParty();
   const session = useActiveSession();
@@ -69,7 +67,6 @@ function Dashboard() {
         <div className="grid grid-cols-1 xl:grid-cols-[1fr_1fr] gap-6">
           <div className="space-y-6">
             <CombatTracker
-              onOpenMonster={setOpenMonsterId}
               view={playerView}
               onViewChange={setPlayerView}
               onEnded={() => setMode("exploration")}
@@ -77,27 +74,11 @@ function Dashboard() {
             <QuickNotesPanel />
           </div>
           <div className="space-y-6">
-            <MonsterSheetPanel monsterId={openMonsterId} />
+            <MonsterSheetPanel />
             <NPCSheetPanel />
           </div>
         </div>
       )}
-
-      <Sheet open={!!openMonsterId && mode !== "combat"} onOpenChange={(o) => !o && setOpenMonsterId(null)}>
-        <SheetContent side="right" className="w-full sm:max-w-lg glass-panel border-l-primary/30 overflow-y-auto">
-          {openMonsterId && (
-            <>
-              <SheetHeader className="border-b border-border/60 pb-4">
-                <SheetTitle className="font-display text-2xl text-gold tracking-wider">Stat Block</SheetTitle>
-                <SheetDescription>Monster · SRD 5.2.1</SheetDescription>
-              </SheetHeader>
-              <div className="py-4">
-                <ContentDetail kind="monster" id={openMonsterId} />
-              </div>
-            </>
-          )}
-        </SheetContent>
-      </Sheet>
     </div>
   );
 }
@@ -357,20 +338,67 @@ function PlotlinePanel() {
   );
 }
 
-function MonsterSheetPanel({ monsterId }: { monsterId: string | null }) {
-  const monster = useContentEntry<MonsterEntry>("monster", monsterId);
+/** Stat blocks for every monster in the tracker, as tabs. The tab follows
+ * the initiative order — when a monster's turn comes up its sheet shows —
+ * but the DM can flip to any other tab at will. */
+function MonsterSheetPanel() {
+  const state = useDmCombat();
+  const [picked, setPicked] = useState<string | null>(null);
+  const sorted = sortCombatants(state.combatants);
+  const activeId = state.turnId ?? sorted[0]?.id ?? null;
+
+  // unique resolvable stat-block refs, in initiative order
+  const tabs: { ref: string; label: string }[] = [];
+  for (const c of sorted) {
+    if (c.kind === "monster" && c.ref?.startsWith("monster-") && !tabs.some((t) => t.ref === c.ref)) {
+      tabs.push({ ref: c.ref, label: c.name.replace(/\s+\d+$/, "") });
+    }
+  }
+
+  // follow the turn: when a monster becomes active, its tab takes over
+  const active = sorted.find((c) => c.id === activeId);
+  const activeRef = active?.kind === "monster" && active.ref?.startsWith("monster-") ? active.ref : null;
+  useEffect(() => {
+    if (activeRef) setPicked(activeRef);
+  }, [activeRef]);
+
+  const current = picked && tabs.some((t) => t.ref === picked) ? picked : tabs[0]?.ref ?? null;
+  const monster = useContentEntry<MonsterEntry>("monster", current);
+
   return (
     <Panel title="Monster · Stat Block" icon={<Skull className="w-4 h-4" />} accent="ember">
-      {monster ? (
-        <div className="space-y-3">
-          <div className="font-display text-xl text-gold">{monster.name}</div>
-          <MonsterDetail monster={monster} />
-        </div>
-      ) : (
+      {tabs.length === 0 ? (
         <p className="text-sm text-muted-foreground italic py-6 text-center">
-          Tap the <Search className="w-3.5 h-3.5 inline mx-0.5" /> icon on a monster in the tracker
-          to open its stat block here.
+          Add monsters to the tracker and their stat blocks appear here.
         </p>
+      ) : (
+        <>
+          <div className="flex flex-wrap gap-1 mb-3">
+            {tabs.map((t) => (
+              <button
+                key={t.ref}
+                onClick={() => setPicked(t.ref)}
+                className={cn(
+                  "text-xs px-2.5 py-1 rounded-full border transition",
+                  t.ref === current
+                    ? "bg-primary/20 border-[var(--gold)]/60 text-gold"
+                    : "bg-black/20 border-border/50 text-muted-foreground hover:text-foreground hover:border-primary/40",
+                  activeRef === t.ref && "ring-1 ring-[var(--gold)]/50",
+                )}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+          {monster ? (
+            <div className="space-y-3">
+              <div className="font-display text-xl text-gold">{monster.name}</div>
+              <MonsterDetail monster={monster} />
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground italic py-4 text-center">Loading stat block…</p>
+          )}
+        </>
       )}
     </Panel>
   );

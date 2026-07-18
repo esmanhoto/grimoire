@@ -277,3 +277,14 @@ html {
   text-decoration: underline dotted;
   text-underline-offset: 4px;
 }
+
+/* Numeric inputs: no spinner arrows — keeps values centered under labels */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}

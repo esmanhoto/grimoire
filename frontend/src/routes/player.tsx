@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { HPBar } from "@/components/grimoire/HPBar";
 import { CommitNumberInput } from "@/components/grimoire/CommitNumberInput";
-import { Sparkles, Shield, Heart, Zap, Skull, Plus, Minus, Swords, X, Check } from "lucide-react";
+import { Sparkles, Shield, Heart, Zap, Skull, Swords, X, Check } from "lucide-react";
 import { usePlayerCombat, playerCombat, type PlayerRow } from "@/lib/combat-store";
 import { durationBadge } from "@/lib/effect-presets";
 import { cn } from "@/lib/utils";
@@ -113,16 +113,9 @@ function PlayerView() {
                       )}
                       {isPc && r.maxHp != null && (<div className="mt-2"><HPBar hp={r.hp ?? 0} maxHp={r.maxHp} tempHp={r.tempHp} /></div>)}
                     </div>
-                    <div className="flex flex-col gap-1">
+                    <div className="flex flex-col justify-center">
                       {isPc && (
-                        <>
-                          <button onClick={() => send("apply_hp_delta", { id: r.id, delta: -1 })} className="w-9 h-9 rounded bg-[var(--blood)]/20 border border-[var(--blood)]/40 text-[var(--blood)] grid place-items-center hover:bg-[var(--blood)]/30">
-                            <Minus className="w-4 h-4" />
-                          </button>
-                          <button onClick={() => send("apply_hp_delta", { id: r.id, delta: +1 })} className="w-9 h-9 rounded bg-[var(--emerald-arcane)]/20 border border-[var(--emerald-arcane)]/40 text-[var(--emerald-arcane)] grid place-items-center hover:bg-[var(--emerald-arcane)]/30">
-                            <Plus className="w-4 h-4" />
-                          </button>
-                        </>
+                        <HpDeltaBox onDelta={(d) => send("apply_hp_delta", { id: r.id, delta: d })} />
                       )}
                     </div>
                   </div>
@@ -172,6 +165,28 @@ function PcEditRow({ row, send }: { row: PlayerRow; send: (op: string, payload: 
         />
       </div>
     </>
+  );
+}
+
+/** Same delta entry as the DM tracker: type -7 to damage, +5 to heal. */
+function HpDeltaBox({ onDelta }: { onDelta: (d: number) => void }) {
+  const [v, setV] = useState("");
+  const submit = () => {
+    const n = parseInt(v.trim(), 10);
+    if (!Number.isNaN(n) && n !== 0) onDelta(n);
+    setV("");
+  };
+  return (
+    <input
+      value={v}
+      onChange={(e) => setV(e.target.value)}
+      onKeyDown={(e) => e.key === "Enter" && submit()}
+      onBlur={submit}
+      placeholder="±HP"
+      inputMode="numeric"
+      title="Type -7 to damage, +5 to heal"
+      className="w-16 h-11 text-center rounded-md bg-black/50 border border-border/60 text-base placeholder:text-muted-foreground/60 focus:border-primary/60 focus:outline-none"
+    />
   );
 }
 
