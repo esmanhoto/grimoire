@@ -1,6 +1,7 @@
 import { useLayoutEffect, useRef, useState } from "react";
-import { normalizeFeatures, type Character } from "@/lib/campaign";
+import { normalizeFeatures, useCampaignMutations, type Character } from "@/lib/campaign";
 import { ContentDetail } from "./ContentDetail";
+import { CommitNumberInput } from "./CommitNumberInput";
 import { Eye, Shield, Heart, Zap, ArrowLeft, ChevronDown, Pencil, Trash2 } from "lucide-react";
 import { SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -109,11 +110,15 @@ export function CharacterSheet({
 }) {
   const [detail, setDetail] = useState<{ kind: ContentKind; id: string; name: string } | null>(null);
   const index = useContentIndex();
+  const { update } = useCampaignMutations();
   const rootRef = useRef<HTMLDivElement>(null);
   const savedScroll = useRef(0);
   const ab = c.abilities;
   const saveProficient = new Set(c.saves.map((s) => ABILITY_NAMES[s]));
   const features = normalizeFeatures(c.features);
+
+  // stat tiles edit in place; changes write straight into the PC's file
+  const patch = (fields: Record<string, unknown>) => update.mutate({ id: c.id, fields });
 
   // The sheet's scroll container is the SheetContent parent; remember where
   // we were before showing a detail so Back lands on the same spot.
@@ -186,12 +191,23 @@ export function CharacterSheet({
           )}
 
           <div className="grid grid-cols-6 gap-2">
-            <Stat label="AC" value={c.ac} icon={<Shield className="w-3 h-3" />} />
-            <Stat label="HP" value={`${c.hp}/${c.maxHp}`} icon={<Heart className="w-3 h-3" />} highlight />
-            <Stat label="Temp HP" value={c.tempHp ?? 0} icon={<Heart className="w-3 h-3" />} />
-            <Stat label="Speed" value={`${c.speed} ft`} icon={<Zap className="w-3 h-3" />} />
-            <Stat label="PP" value={c.passivePerception} icon={<Eye className="w-3 h-3" />} />
-            <Stat label="Insight" value={c.passiveInsight} icon={<Eye className="w-3 h-3" />} />
+            <EditableStat label="AC" icon={<Shield className="w-3 h-3" />} value={c.ac} onCommit={(v) => patch({ ac: v })} />
+            <div className="rounded-md py-1 px-1 bg-black/30 border border-border/50 text-center">
+              <div className="flex items-center justify-center gap-1 text-[9px] uppercase tracking-widest text-muted-foreground">
+                <Heart className="w-3 h-3" /> HP
+              </div>
+              <div className="flex items-center justify-center text-sm font-semibold text-gold">
+                <CommitNumberInput value={c.hp} onCommit={(v) => patch({ hp: v })} aria-label="Current HP"
+                  className="w-8 bg-transparent text-right focus:outline-none focus:text-foreground" />
+                <span className="text-muted-foreground">/</span>
+                <CommitNumberInput value={c.maxHp} onCommit={(v) => patch({ maxHp: v })} aria-label="Max HP"
+                  className="w-8 bg-transparent text-left focus:outline-none focus:text-foreground" />
+              </div>
+            </div>
+            <EditableStat label="Temp HP" icon={<Heart className="w-3 h-3" />} value={c.tempHp ?? 0} onCommit={(v) => patch({ tempHp: v })} />
+            <EditableStat label="Speed (ft)" icon={<Zap className="w-3 h-3" />} value={c.speed} onCommit={(v) => patch({ speed: v })} />
+            <EditableStat label="PP" icon={<Eye className="w-3 h-3" />} value={c.passivePerception} onCommit={(v) => patch({ passivePerception: v })} />
+            <EditableStat label="Insight" icon={<Eye className="w-3 h-3" />} value={c.passiveInsight} onCommit={(v) => patch({ passiveInsight: v })} />
           </div>
 
           <div>
@@ -208,7 +224,12 @@ export function CharacterSheet({
                       {isSave && <span className="text-gold"> (Prof)</span>}
                     </div>
                     <div className="font-display text-xl text-gold">{fmt(mod(score))}</div>
-                    <div className="text-[10px] text-muted-foreground">{score}</div>
+                    <CommitNumberInput
+                      value={score}
+                      onCommit={(v) => patch({ abilities: { ...ab, [key]: v } })}
+                      aria-label={`${full} score`}
+                      className="w-10 mx-auto block text-[10px] text-muted-foreground text-center bg-transparent focus:outline-none focus:text-foreground"
+                    />
                   </div>
                 );
               })}
@@ -328,6 +349,28 @@ export function CharacterSheet({
           </CollapsibleSection>
         </div>
       </div>
+    </div>
+  );
+}
+
+function EditableStat({ label, icon, value, onCommit }: {
+  label: string;
+  icon: React.ReactNode;
+  value: number;
+  onCommit: (v: number) => void;
+}) {
+  return (
+    <div className="rounded-md py-1 px-1 bg-black/30 border border-border/50 text-center">
+      <div className="flex items-center justify-center gap-1 text-[9px] uppercase tracking-widest text-muted-foreground">
+        {icon}
+        {label}
+      </div>
+      <CommitNumberInput
+        value={value}
+        onCommit={onCommit}
+        aria-label={label}
+        className="w-full text-center text-sm font-semibold bg-transparent focus:outline-none text-foreground"
+      />
     </div>
   );
 }
