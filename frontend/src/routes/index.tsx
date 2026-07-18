@@ -313,27 +313,64 @@ function QuickNotesPanel() {
   );
 }
 
+/** Derived plotline: the latest session recaps (past), the armed session
+ * (now), and its "looming" prep field (what's coming). No hand-tending. */
 function PlotlinePanel() {
-  const beats = [
-    { t: "Session 11", text: "Party discovered the corpse on the beach." },
-    { t: "Session 12", text: "Weeping Wood opened; heard the Court's choir." },
-    { t: "Now", text: "The party stands at the mouth of the Pale Court." },
-    { t: "Looming", text: "Vhaelor's midwinter walk in 6 in-world days." },
+  const entities = useCampaignIndex();
+  const session = useActiveSession();
+  const navigate = useNavigate();
+
+  const recaps = entities
+    .filter((e) => e.type === "recap")
+    .sort((a, b) => {
+      const an = Number(a.fields.session ?? 0);
+      const bn = Number(b.fields.session ?? 0);
+      if (an !== bn) return an - bn;
+      return String(a.fields.date ?? "").localeCompare(String(b.fields.date ?? ""));
+    })
+    .slice(-3);
+
+  type Beat = { label: string; text: string; kind: "past" | "now" | "future"; id?: string };
+  const beats: Beat[] = [
+    ...recaps.map((r): Beat => ({ label: r.name, text: r.excerpt, kind: "past", id: r.id })),
+    ...(session
+      ? [{ label: "Now", text: session.strongStart || session.name, kind: "now" as const }]
+      : []),
+    ...(session?.looming
+      ? [{ label: "Looming", text: session.looming, kind: "future" as const }]
+      : []),
   ];
+
   return (
     <Panel title="Plotline" icon={<Landmark className="w-4 h-4" />} accent="ember">
-      <ol className="relative border-l border-primary/30 ml-3 space-y-4">
-        {beats.map((b, i) => (
-          <li key={i} className="pl-5 relative">
-            <span className={cn(
-              "absolute -left-[7px] top-1.5 w-3 h-3 rounded-full",
-              i === 2 ? "bg-arcane glow-arcane" : "bg-primary/60",
-            )} />
-            <div className="text-[10px] uppercase tracking-widest text-gold-soft">{b.t}</div>
-            <div className="text-sm">{b.text}</div>
-          </li>
-        ))}
-      </ol>
+      {beats.length === 0 ? (
+        <p className="text-sm text-muted-foreground italic py-6 text-center">
+          The plotline builds itself from your session recaps and the armed session's prep.
+        </p>
+      ) : (
+        <ol className="relative border-l border-primary/30 ml-3 space-y-4">
+          {beats.map((b, i) => (
+            <li key={i} className="pl-5 relative">
+              <span className={cn(
+                "absolute -left-[7px] top-1.5 w-3 h-3 rounded-full",
+                b.kind === "now" ? "bg-arcane glow-arcane" : "bg-primary/60",
+                b.kind === "future" && "opacity-60",
+              )} />
+              <div className="text-[10px] uppercase tracking-widest text-gold-soft">{b.label}</div>
+              {b.id ? (
+                <button
+                  onClick={() => navigate({ to: "/campaign", search: { open: b.id } })}
+                  className="text-sm text-left hover:text-gold"
+                >
+                  {b.text}
+                </button>
+              ) : (
+                <div className="text-sm">{b.text}</div>
+              )}
+            </li>
+          ))}
+        </ol>
+      )}
     </Panel>
   );
 }

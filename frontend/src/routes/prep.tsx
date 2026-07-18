@@ -149,8 +149,19 @@ function SessionEditor({ session }: { session: SessionData }) {
           initial={session.strongStart}
           placeholder="The night begins with…"
           onCommit={(v) => save({ strongStart: v })}
-          rows={7}
+          rows={5}
         />
+        <div className="mt-3">
+          <div className="text-[10px] uppercase tracking-widest text-gold-soft mb-1">
+            Looming — shown on the dashboard plotline
+          </div>
+          <DraftTextarea
+            initial={session.looming}
+            placeholder="What's coming if the party stalls…"
+            onCommit={(v) => save({ looming: v })}
+            rows={2}
+          />
+        </div>
       </StepPanel>
 
       <StepPanel index={3} title="Potential Scenes" icon={<Sparkles className="w-4 h-4" />} accent="purple"

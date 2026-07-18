@@ -16,6 +16,7 @@ export type SessionData = {
   status: string;
   date: string;
   strongStart: string;
+  looming: string; // "what's coming" — feeds the dashboard plotline
   reviewNotes: string;
   scenes: SceneItem[];
   secrets: SecretItem[];
@@ -40,6 +41,7 @@ export function parseSession(e: {
     status: String(f.status ?? "draft"),
     date: String(f.date ?? ""),
     strongStart: String(f.strongStart ?? ""),
+    looming: String(f.looming ?? ""),
     reviewNotes: String(f.reviewNotes ?? ""),
     scenes: (f.scenes as SceneItem[]) ?? [],
     secrets: (f.secrets as SecretItem[]) ?? [],
