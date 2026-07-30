@@ -6,6 +6,37 @@ player view, and post-session AI recaps — all running locally, no accounts, no
 
 Not a VTT. Built for a single DM at a physical table.
 
+## Screenshots
+
+Combat is a panel, never a takeover — lookup and stat blocks stay on screen while
+the tracker runs. Here the round is live: a concentration save is prompted inline
+(no modal), Bless is ticking down on two PCs, and a goblin is hidden from the
+players' view.
+
+![Combat tracker with the monster stat block beside it](docs/images/combat.webp)
+
+The Exploration board: universal lookup over SRD content and campaign entities,
+the party bar, this session's NPCs, locations, scenes and secrets.
+
+![Exploration dashboard](docs/images/dashboard.webp)
+
+The Player View on a phone across the table. Players edit their own HP, AC,
+conditions and initiative; enemies stay in the turn order but show only
+Healthy / Bloodied / Down, and hidden enemies don't appear at all.
+
+<img src="docs/images/player.webp" alt="Player View on a phone" width="360">
+
+Session Prep, structured as the eight Lazy DM steps — monsters added here feed
+the combat tracker, NPCs and locations become wiki entities.
+
+![Session Prep](docs/images/prep.webp)
+
+The campaign wiki: Markdown files on disk, cross-referenced with `[[wikilinks]]`.
+
+![Campaign wiki](docs/images/campaign.webp)
+
+*Screenshots use the sample campaign the app seeds on first run.*
+
 ## Architecture
 
 - **`frontend/`** — React + Vite + TypeScript + Tailwind CSS v4 + shadcn/ui (SPA).
