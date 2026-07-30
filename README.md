@@ -44,3 +44,13 @@ and open `http://<your-lan-ip>:8010` — the Player View QR code points phones a
 
 Only SRD content (CC-licensed) is committed. Homebrew and non-SRD content loads
 from local folders that are gitignored and never committed.
+
+## License
+
+The code is [MIT licensed](LICENSE).
+
+Game content under `content/srd/` is from the System Reference Document 5.2.1
+by Wizards of the Coast LLC, licensed under
+[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/legalcode) — see
+[content/srd/ATTRIBUTION.md](content/srd/ATTRIBUTION.md). This project is not
+affiliated with or endorsed by Wizards of the Coast.
