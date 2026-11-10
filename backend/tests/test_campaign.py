@@ -80,3 +80,25 @@ def test_pc_roundtrip_keeps_structured_stats(tmp_path: Path):
     ilyana = next(p for p in store.party() if p["name"] == "Ilyana Duskweaver")
     assert ilyana["fields"]["abilities"]["cha"] == 18
     assert {"name": "Hex", "level": 1} in ilyana["fields"]["spells"]
+
+
+def test_image_paths_stay_inside_images_dir(store: CampaignStore):
+    (store.root / "images" / "npcs").mkdir(parents=True)
+    (store.root / "images" / "npcs" / "mara.jpg").write_bytes(b"\xff\xd8")
+    assert store.image("images/npcs/mara.jpg") == (store.root / "images/npcs/mara.jpg").resolve()
+    assert store.image("npcs/mara-ashfield.md") is None
+    assert store.image("images/../npcs/mara-ashfield.md") is None
+    assert store.image("images/npcs/missing.jpg") is None
+
+
+def test_image_endpoint(store: CampaignStore, monkeypatch: pytest.MonkeyPatch):
+    from fastapi.testclient import TestClient
+
+    import grimoire.main as main
+
+    (store.root / "images").mkdir()
+    (store.root / "images" / "mara.png").write_bytes(b"\x89PNG")
+    monkeypatch.setattr(main, "campaign", store)
+    client = TestClient(main.app)
+    assert client.get("/api/campaign-files/images/mara.png").content == b"\x89PNG"
+    assert client.get("/api/campaign-files/npcs/mara-ashfield.md").status_code == 404

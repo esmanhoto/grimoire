@@ -106,6 +106,12 @@ export const TYPE_LABEL: Record<EntityType, string> = {
   lore: "Lore",
 };
 
+export function portraitUrl(fields: Record<string, unknown>): string | null {
+  return typeof fields.portrait === "string" && fields.portrait
+    ? `/api/campaign-files/${fields.portrait.split("/").map(encodeURIComponent).join("/")}`
+    : null;
+}
+
 export function entitySubline(e: { type: EntityType; fields: Record<string, unknown> }): string {
   const f = e.fields;
   switch (e.type) {

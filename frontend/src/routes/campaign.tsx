@@ -15,7 +15,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription,
 } from "@/components/ui/dialog";
 import {
-  useCampaignIndex, useCampaignEntity, useCampaignMutations, renderWikiBody,
+  useCampaignIndex, useCampaignEntity, useCampaignMutations, renderWikiBody, portraitUrl,
   entitySubline, characterFromEntity, TYPE_LABEL, type CampaignEntity, type EntityType,
 } from "@/lib/campaign";
 import { fuzzySearch } from "@/lib/content";
@@ -160,9 +160,18 @@ function CampaignPage() {
             }
           >
             <div className="flex items-start gap-3">
-              <div className="w-11 h-11 rounded-lg bg-arcane grid place-items-center shrink-0 shadow-arcane">
-                <IconFor className="w-5 h-5 text-primary-foreground" />
-              </div>
+              {portraitUrl(item.fields) ? (
+                <img
+                  src={portraitUrl(item.fields)!}
+                  alt=""
+                  loading="lazy"
+                  className="w-11 h-11 rounded-lg object-cover object-top shrink-0 shadow-arcane border border-primary/30"
+                />
+              ) : (
+                <div className="w-11 h-11 rounded-lg bg-arcane grid place-items-center shrink-0 shadow-arcane">
+                  <IconFor className="w-5 h-5 text-primary-foreground" />
+                </div>
+              )}
               <div className="min-w-0 flex-1">
                 <div className="font-display text-lg text-gold group-hover:text-primary truncate">{item.name}</div>
                 <div className="text-[11px] text-muted-foreground uppercase tracking-widest">{entitySubline(item)}</div>
@@ -357,6 +366,9 @@ function EntitySheet({
   const structuredFields = entity
     ? Object.entries(entity.fields).filter(([, v]) => typeof v === "object" && v !== null)
     : [];
+  const badgeFields = entity
+    ? Object.entries(entity.fields).filter(([k, v]) => typeof v !== "object" && k !== "portrait")
+    : [];
 
   return (
     <Sheet open={!!id} onOpenChange={(o) => !o && onClose()}>
@@ -386,10 +398,17 @@ function EntitySheet({
                 </Button>
               </div>
 
-              {Object.entries(entity.fields).filter(([, v]) => typeof v !== "object").length > 0 && (
+              {portraitUrl(entity.fields) && (
+                <img
+                  src={portraitUrl(entity.fields)!}
+                  alt={entity.name}
+                  className="w-full max-h-96 object-contain rounded-lg border border-primary/30 bg-black/30"
+                />
+              )}
+
+              {badgeFields.length > 0 && (
                 <div className="flex flex-wrap gap-1.5">
-                  {Object.entries(entity.fields)
-                    .filter(([, v]) => typeof v !== "object")
+                  {badgeFields
                     .map(([k, v]) => (
                       <Badge key={k} variant="outline" className="border-primary/30 text-gold-soft text-[11px]">
                         {k}: {String(v)}

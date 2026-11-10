@@ -31,6 +31,9 @@ TYPE_DIRS = {
     "lore": "lore",
 }
 
+IMAGES_DIR = "images"
+IMAGE_SUFFIXES = {".jpg", ".jpeg", ".png", ".webp", ".gif"}
+
 WIKILINK = re.compile(r"\[\[([^\]|]+)(?:\|[^\]]*)?\]\]")
 FRONTMATTER = re.compile(r"\A---\s*\n(.*?)\n---\s*\n?", re.S)
 
@@ -146,6 +149,13 @@ class CampaignStore:
             and any(t.strip().lower() == entity["name"].lower() for t in WIKILINK.findall(e["body"]))
         ]
         return {**entity, "links": links, "backlinks": backlinks}
+
+    def image(self, rel: str) -> Path | None:
+        images = (self.root / IMAGES_DIR).resolve()
+        path = (self.root / rel).resolve()
+        if not path.is_relative_to(images) or path.suffix.lower() not in IMAGE_SUFFIXES or not path.is_file():
+            return None
+        return path
 
     def party(self) -> list[dict[str, Any]]:
         return [e for e in self._all() if e["type"] == "pc"]

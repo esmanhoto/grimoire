@@ -142,6 +142,14 @@ async def campaign_entity(entity_id: str) -> dict:
     return entity
 
 
+@app.get("/api/campaign-files/{rel:path}")
+async def campaign_image(rel: str) -> FileResponse:
+    path = campaign.image(rel)
+    if path is None:
+        raise HTTPException(status_code=404, detail=f"no image '{rel}'")
+    return FileResponse(path)
+
+
 @app.get("/api/session/active")
 async def session_active() -> dict:
     return {"session": campaign.active_session()}
