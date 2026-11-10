@@ -100,6 +100,14 @@ async def content_index() -> dict:
     return {"entries": content.index, "counts": content.counts()}
 
 
+@app.get("/api/content-files/{rel:path}")
+async def content_image(rel: str) -> FileResponse:
+    path = content.image(rel)
+    if path is None:
+        raise HTTPException(status_code=404, detail=f"no image '{rel}'")
+    return FileResponse(path)
+
+
 @app.get("/api/content/{kind}/{entry_id}")
 async def content_entry(kind: str, entry_id: str) -> dict:
     entry = content.get(kind, entry_id)

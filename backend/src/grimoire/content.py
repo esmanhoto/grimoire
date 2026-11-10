@@ -45,8 +45,12 @@ def _meta_line(kind: str, e: dict[str, Any]) -> str:
     return e.get("tag") or "Rule"
 
 
+IMAGE_SUFFIXES = {".jpg", ".jpeg", ".png", ".webp", ".gif"}
+
+
 class ContentStore:
     def __init__(self, content_dir: Path) -> None:
+        self.homebrew_images = (content_dir / "homebrew" / "images").resolve()
         self.entries: dict[str, dict[str, dict[str, Any]]] = {k: {} for k in KIND_FILES}
         self.index: list[dict[str, str]] = []
         for source in ("srd", "homebrew"):
@@ -68,6 +72,12 @@ class ContentStore:
 
     def get(self, kind: str, entry_id: str) -> dict[str, Any] | None:
         return self.entries.get(kind, {}).get(entry_id)
+
+    def image(self, rel: str) -> Path | None:
+        path = (self.homebrew_images.parent / rel).resolve()
+        if not path.is_relative_to(self.homebrew_images) or path.suffix.lower() not in IMAGE_SUFFIXES or not path.is_file():
+            return None
+        return path
 
     def counts(self) -> dict[str, int]:
         return {k: len(v) for k, v in self.entries.items()}

@@ -72,6 +72,10 @@ use `#### Actions` / `#### Bonus Actions` / `#### Reactions` headings):
 ]
 ```
 
+Optional `"image": "images/monsters/example-lurker.jpg"` (a path under
+`content/homebrew/`; the file must live in `content/homebrew/images/`)
+shows the creature's art on its stat card.
+
 `magic-items.json`:
 
 ```json

@@ -42,6 +42,7 @@ export type MonsterEntry = {
   passivePerception: number;
   body: string;
   contentSource: string;
+  image?: string;
 };
 
 export type ItemEntry = {

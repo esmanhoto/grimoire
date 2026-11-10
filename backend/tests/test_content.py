@@ -31,3 +31,16 @@ def test_monster_detail_has_tracker_fields():
 
 def test_missing_entry_404():
     assert client.get("/api/content/spell/spell-nope").status_code == 404
+
+
+def test_homebrew_images_stay_inside_images_dir(tmp_path, monkeypatch):
+    from grimoire.content import ContentStore
+
+    (tmp_path / "homebrew" / "images").mkdir(parents=True)
+    (tmp_path / "homebrew" / "images" / "lurker.jpg").write_bytes(b"\xff\xd8")
+    (tmp_path / "homebrew" / "monsters.json").write_text("[]")
+    store = ContentStore(tmp_path)
+    monkeypatch.setattr(main, "content", store)
+    assert client.get("/api/content-files/images/lurker.jpg").content == b"\xff\xd8"
+    assert client.get("/api/content-files/monsters.json").status_code == 404
+    assert client.get("/api/content-files/images/../monsters.json").status_code == 404

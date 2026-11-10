@@ -76,6 +76,13 @@ export function MonsterDetail({ monster }: { monster: MonsterEntry }) {
       <p className="text-sm italic text-muted-foreground">
         {monster.type} · {monster.alignment}
       </p>
+      {monster.image && (
+        <img
+          src={`/api/content-files/${monster.image.split("/").map(encodeURIComponent).join("/")}`}
+          alt={monster.name}
+          className="w-full max-h-96 object-contain rounded-lg border border-primary/30 bg-black/30"
+        />
+      )}
       <div className="grid grid-cols-3 gap-2 text-center">
         <MiniStat label="AC" value={monster.ac} />
         <MiniStat label="HP" value={`${monster.hp}${monster.hpRoll ? ` (${monster.hpRoll})` : ""}`} highlight />
