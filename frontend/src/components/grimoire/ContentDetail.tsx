@@ -14,6 +14,7 @@ import {
   type SpellEntry,
 } from "@/lib/content";
 import { cn } from "@/lib/utils";
+import { ZoomableImage } from "./ZoomableImage";
 
 /** Render an SRD markdown body (may contain embedded HTML tables). Content is
  * from our own committed/local files, so raw HTML is trusted. */
@@ -77,10 +78,9 @@ export function MonsterDetail({ monster }: { monster: MonsterEntry }) {
         {monster.type} · {monster.alignment}
       </p>
       {monster.image && (
-        <img
+        <ZoomableImage
           src={`/api/content-files/${monster.image.split("/").map(encodeURIComponent).join("/")}`}
           alt={monster.name}
-          className="w-full max-h-96 object-contain rounded-lg border border-primary/30 bg-black/30"
         />
       )}
       <div className="grid grid-cols-3 gap-2 text-center">

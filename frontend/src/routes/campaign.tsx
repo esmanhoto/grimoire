@@ -21,6 +21,7 @@ import {
 import { fuzzySearch } from "@/lib/content";
 import { CharacterForm } from "@/components/grimoire/CharacterForm";
 import { CharacterSheet } from "@/components/grimoire/CharacterSheet";
+import { ZoomableImage } from "@/components/grimoire/ZoomableImage";
 import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 
@@ -399,11 +400,7 @@ function EntitySheet({
               </div>
 
               {portraitUrl(entity.fields) && (
-                <img
-                  src={portraitUrl(entity.fields)!}
-                  alt={entity.name}
-                  className="w-full max-h-96 object-contain rounded-lg border border-primary/30 bg-black/30"
-                />
+                <ZoomableImage src={portraitUrl(entity.fields)!} alt={entity.name} />
               )}
 
               {badgeFields.length > 0 && (
