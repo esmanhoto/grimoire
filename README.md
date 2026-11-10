@@ -51,6 +51,15 @@ See [docs/plan.md](docs/plan.md) for the full project plan.
 
 ## Development
 
+One command for both, with auto-reload (Vite hot reload; backend restarts on
+Python or `content/*.json` changes; campaign Markdown is always read live):
+
+```sh
+scripts/dev.sh     # open http://localhost:5173 — Ctrl-C stops both
+```
+
+Or run them separately:
+
 Frontend (bun):
 
 ```sh
