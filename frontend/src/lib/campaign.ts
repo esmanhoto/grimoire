@@ -4,7 +4,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { marked } from "marked";
 
-export type EntityType = "npc" | "location" | "faction" | "quest" | "recap" | "pc" | "session";
+export type EntityType = "npc" | "location" | "faction" | "quest" | "recap" | "pc" | "session" | "lore";
 
 export type CampaignIndexEntry = {
   id: string;
@@ -103,6 +103,7 @@ export const TYPE_LABEL: Record<EntityType, string> = {
   recap: "Session Recap",
   pc: "Player Character",
   session: "Session",
+  lore: "Lore",
 };
 
 export function entitySubline(e: { type: EntityType; fields: Record<string, unknown> }): string {
@@ -122,6 +123,8 @@ export function entitySubline(e: { type: EntityType; fields: Record<string, unkn
       return `${f.race ?? ""} ${f.class ?? ""} ${f.level ?? ""}`.trim() || "PC";
     case "session":
       return [f.status, f.date].filter(Boolean).join(" · ") || "Session";
+    case "lore":
+      return String(f.topic ?? "Lore");
   }
 }
 

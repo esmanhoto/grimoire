@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import {
   BookOpen, Users, MapPin, Flag, Scroll, Plus, Link2, Pencil, Trash2, CornerUpLeft, User,
-  Search as SearchIcon, X, AudioLines,
+  Search as SearchIcon, X, AudioLines, Landmark,
 } from "lucide-react";
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription,
@@ -37,6 +37,7 @@ const tabs: { key: EntityType; label: string; icon: typeof Users }[] = [
   { key: "faction", label: "Factions", icon: Flag },
   { key: "quest", label: "Quests", icon: Scroll },
   { key: "recap", label: "Recaps", icon: BookOpen },
+  { key: "lore", label: "Lore", icon: Landmark },
   { key: "pc", label: "Party", icon: User },
 ];
 

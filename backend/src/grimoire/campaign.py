@@ -28,6 +28,7 @@ TYPE_DIRS = {
     "recap": "recaps",
     "pc": "pcs",
     "session": "sessions",
+    "lore": "lore",
 }
 
 WIKILINK = re.compile(r"\[\[([^\]|]+)(?:\|[^\]]*)?\]\]")
