@@ -8,12 +8,51 @@ reviews in the Post-Session page before anything is written.
 
 from __future__ import annotations
 
+import json
 import shutil
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
 from .campaign import CampaignStore, slugify
+
+DIGEST_FILENAME = "session.session-digest.json"
+
+
+def list_listener_sessions(root: Path) -> list[dict[str, Any]]:
+    """Digested sessions in the listener's folder, newest first."""
+    if not root.is_dir():
+        return []
+    sessions = []
+    for folder in sorted(root.iterdir(), reverse=True):
+        digest_path = folder / DIGEST_FILENAME
+        if not folder.is_dir() or not digest_path.is_file():
+            continue
+        try:
+            digest = json.loads(digest_path.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+        sessions.append(
+            {
+                "folder": folder.name,
+                "createdAt": digest.get("createdAt"),
+                "model": digest.get("model"),
+                "summary": str(digest.get("summary") or "")[:220],
+            }
+        )
+    return sessions
+
+
+def load_listener_digest(root: Path, folder: str) -> dict[str, Any] | None:
+    if not folder or folder != Path(folder).name or folder in {".", ".."}:
+        return None
+    path = root / folder / DIGEST_FILENAME
+    if not path.is_file():
+        return None
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return None
 
 CLOSED_QUEST_STATUSES = {"completed", "done", "resolved", "failed", "abandoned"}
 

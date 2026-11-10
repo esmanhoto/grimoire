@@ -222,6 +222,28 @@ def resync_dndbeyond(req: DdbResync) -> dict:
         raise HTTPException(status_code=400, detail=str(e))
 
 
+LISTENER_SESSIONS_DIR = Path(
+    os.environ.get("GRIMOIRE_LISTENER_DIR", Path.home() / "DnD Listener" / "sessions")
+)
+
+
+@app.get("/api/listener/sessions")
+def listener_sessions() -> dict:
+    from .listener import list_listener_sessions
+
+    return {"sessions": list_listener_sessions(LISTENER_SESSIONS_DIR)}
+
+
+@app.get("/api/listener/sessions/{folder}")
+def listener_session_digest(folder: str) -> dict:
+    from .listener import load_listener_digest
+
+    digest = load_listener_digest(LISTENER_SESSIONS_DIR, folder)
+    if digest is None:
+        raise HTTPException(status_code=404, detail=f"no digest for session '{folder}'")
+    return {"digest": digest}
+
+
 @app.get("/api/export/context")
 def export_context() -> dict:
     from .listener import build_context

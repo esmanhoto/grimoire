@@ -100,6 +100,30 @@ def test_recap_name_avoids_slug_collision(store: CampaignStore) -> None:
     assert recap["name"] == "Session 2026-11-07 (2)"
 
 
+def test_listener_session_browsing(tmp_path: Path) -> None:
+    import json
+
+    from grimoire.listener import list_listener_sessions, load_listener_digest
+
+    root = tmp_path / "sessions"
+    (root / "2026-11-07-1900").mkdir(parents=True)
+    (root / "2026-11-07-1900" / "session.session-digest.json").write_text(
+        json.dumps({"summary": "Marta night", "createdAt": "2026-11-07T22:00:00Z", "model": "qwen3:32b"})
+    )
+    (root / "2026-11-01-1900").mkdir()  # recorded but not digested
+    (root / "junk").mkdir()
+    (root / "junk" / "session.session-digest.json").write_text("{not json")
+
+    sessions = list_listener_sessions(root)
+    assert [s["folder"] for s in sessions] == ["2026-11-07-1900"]
+    assert sessions[0]["summary"] == "Marta night"
+
+    assert load_listener_digest(root, "2026-11-07-1900")["summary"] == "Marta night"
+    assert load_listener_digest(root, "../outside") is None
+    assert load_listener_digest(root, "2026-11-01-1900") is None
+    assert list_listener_sessions(tmp_path / "missing") == []
+
+
 def test_digest_endpoints(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     from fastapi.testclient import TestClient
 
