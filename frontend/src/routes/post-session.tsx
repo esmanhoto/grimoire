@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useRef, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Panel } from "@/components/grimoire/Panel";
 import { Button } from "@/components/ui/button";
@@ -36,6 +36,13 @@ type Digest = {
   discarded?: string[];
 };
 
+type ListenerSession = {
+  folder: string;
+  createdAt?: string;
+  model?: string;
+  summary?: string;
+};
+
 type Proposal = {
   key: string;
   action: "create" | "update";
@@ -58,14 +65,22 @@ function PostSession() {
   const [busy, setBusy] = useState(false);
   const [applied, setApplied] = useState(false);
 
-  const loadFile = async (file: File) => {
+  const { data: listenerSessions } = useQuery({
+    queryKey: ["listener-sessions"],
+    queryFn: async () => {
+      const r = await fetch("/api/listener/sessions");
+      if (!r.ok) return [];
+      return ((await r.json()) as { sessions: ListenerSession[] }).sessions;
+    },
+  });
+
+  const loadDigest = async (parsed: Digest, label: string) => {
     try {
-      const parsed = JSON.parse(await file.text()) as Digest;
       if (!parsed.summary && !parsed.npcs && !parsed.plotThreads) {
         throw new Error("that file doesn't look like a session-digest.json");
       }
       setDigest(parsed);
-      setFileName(file.name);
+      setFileName(label);
       setApplied(false);
       setBusy(true);
       const r = await fetch("/api/import/digest/preview", {
@@ -80,6 +95,27 @@ function PostSession() {
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Could not read the digest");
     } finally {
+      setBusy(false);
+    }
+  };
+
+  const loadFile = async (file: File) => {
+    try {
+      await loadDigest(JSON.parse(await file.text()) as Digest, file.name);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not read the digest");
+    }
+  };
+
+  const loadFromListener = async (folder: string) => {
+    setBusy(true);
+    try {
+      const r = await fetch(`/api/listener/sessions/${encodeURIComponent(folder)}`);
+      if (!r.ok) throw new Error((await r.json().catch(() => null))?.detail ?? r.statusText);
+      const { digest } = (await r.json()) as { digest: Digest };
+      await loadDigest(digest, folder);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not load the session");
       setBusy(false);
     }
   };
@@ -132,6 +168,37 @@ function PostSession() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Panel title="Session Digest" icon={<AudioLines className="w-4 h-4" />} accent="purple">
+          {!!listenerSessions?.length && (
+            <div className="mb-4 space-y-2">
+              <div className="text-[10px] uppercase tracking-[0.2em] text-gold-soft">
+                From D&D Listener
+              </div>
+              <ul className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
+                {listenerSessions.map((s) => (
+                  <li key={s.folder}>
+                    <button
+                      onClick={() => void loadFromListener(s.folder)}
+                      disabled={busy}
+                      className={
+                        "w-full text-left ornate-frame bg-black/20 p-2.5 transition hover:border-primary/60 cursor-pointer " +
+                        (fileName === s.folder ? "border-primary/70" : "")
+                      }
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="font-display text-sm text-gold">{s.folder}</span>
+                        {s.createdAt && (
+                          <span className="text-[10px] text-muted-foreground">{s.createdAt.slice(0, 10)}</span>
+                        )}
+                      </div>
+                      {s.summary && (
+                        <div className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{s.summary}</div>
+                      )}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
           <div
             className="ornate-frame p-6 text-center bg-black/20 cursor-pointer"
             onClick={() => fileInput.current?.click()}
@@ -146,7 +213,7 @@ function PostSession() {
               <FileJson className="w-7 h-7 text-primary-foreground" />
             </div>
             <div className="mt-3 font-display text-lg text-gold">
-              {fileName || "Drop session-digest.json"}
+              {fileName || (listenerSessions?.length ? "…or drop a session-digest.json" : "Drop session-digest.json")}
             </div>
             <div className="text-xs text-muted-foreground">
               {digest
