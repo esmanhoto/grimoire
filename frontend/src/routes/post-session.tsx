@@ -1,15 +1,20 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { Panel } from "@/components/grimoire/Panel";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Mic2, FileAudio, Sparkles, Save, Users, MapPin, ScrollText, Gem, Cloud, Play, Pause } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  FileJson, ScrollText, Sparkles, Save, Users, MapPin, Gem, Quote, AudioLines, ShieldCheck,
+} from "lucide-react";
 
 export const Route = createFileRoute("/post-session")({
   head: () => ({
     meta: [
       { title: "Post-Session — Grimoire" },
-      { name: "description", content: "Transcribe session audio and turn it into a structured recap." },
+      { name: "description", content: "Import a D&D Listener session digest into the campaign wiki." },
       { property: "og:title", content: "Post-Session — Grimoire" },
       { property: "og:description", content: "Turn table talk into canon." },
     ],
@@ -17,27 +22,102 @@ export const Route = createFileRoute("/post-session")({
   component: PostSession,
 });
 
-const sampleTranscript = `[00:02:14] Sam (as Ilyana): "The sap on this tree... it's warm."
-[00:02:31] DM: A low humming rises from the roots — a choir of dozens.
-[00:03:05] Jordan (as Kaervek): "By the Dawnwatch. Weapons out. Now."
-[00:04:12] Riley (as Sable): Rolling stealth — natural 19, plus nine.
-[00:11:32] DM: A goblin scout rounds the corner and freezes. Roll initiative.
-[00:22:04] Sam: I use Banishment on the Hobgoblin Captain. DC 16.
-[00:31:15] Riley: Sable lifts the sigil ring off Vex Corvo.
-[00:38:00] DM: Vhaelor is waiting. He waves you toward empty chairs.`;
+type Digest = {
+  summary?: string;
+  recap?: string;
+  createdAt?: string;
+  model?: string;
+  events?: { who?: string; what: string }[];
+  loot?: { item: string; recipient?: string }[];
+  npcs?: { name: string }[];
+  locations?: { name: string }[];
+  plotThreads?: { title: string; status: string }[];
+  quotes?: { speaker: string; quote: string }[];
+  discarded?: string[];
+};
 
-const recap = {
-  Recap: "The party crossed the last mile of the Weeping Wood, silenced a cultist choir, and descended the Old Netherese stair. They now stand on the threshold of Vhaelor's throne room — and he is expecting them.",
-  NPCs: ["Vex Corvo — lost his sigil ring, doesn't know yet.", "The Hollow King (Vhaelor) — cordial, patient, terrifying."],
-  Locations: ["The Weeping Wood — sap-warm, humming with voices.", "The Netherese Stair — carved with warnings.", "The Pale Court — hall of bone."],
-  Quests: ["Silence the Bells — advanced.", "The Hollow Crown — imminent."],
-  Loot: ["Vex's sigil ring (uses unknown).", "Silvered greatsword."],
-  Cliffhanger: "Vhaelor gestures at six chairs. In the sixth sits a figure with Kaervek's face.",
+type Proposal = {
+  key: string;
+  action: "create" | "update";
+  type: string;
+  id: string | null;
+  name: string;
+  summary: string;
+  fields: Record<string, unknown>;
+  body: string | null;
 };
 
 function PostSession() {
-  const [phase, setPhase] = useState<"idle" | "transcribing" | "done">("idle");
-  const [playing, setPlaying] = useState(false);
+  const navigate = useNavigate();
+  const qc = useQueryClient();
+  const fileInput = useRef<HTMLInputElement>(null);
+  const [digest, setDigest] = useState<Digest | null>(null);
+  const [fileName, setFileName] = useState("");
+  const [proposals, setProposals] = useState<Proposal[] | null>(null);
+  const [accepted, setAccepted] = useState<Set<string>>(new Set());
+  const [busy, setBusy] = useState(false);
+  const [applied, setApplied] = useState(false);
+
+  const loadFile = async (file: File) => {
+    try {
+      const parsed = JSON.parse(await file.text()) as Digest;
+      if (!parsed.summary && !parsed.npcs && !parsed.plotThreads) {
+        throw new Error("that file doesn't look like a session-digest.json");
+      }
+      setDigest(parsed);
+      setFileName(file.name);
+      setApplied(false);
+      setBusy(true);
+      const r = await fetch("/api/import/digest/preview", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ digest: parsed }),
+      });
+      if (!r.ok) throw new Error((await r.json().catch(() => null))?.detail ?? r.statusText);
+      const { proposals } = (await r.json()) as { proposals: Proposal[] };
+      setProposals(proposals);
+      setAccepted(new Set(proposals.map((p) => p.key)));
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not read the digest");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const apply = async () => {
+    if (!proposals) return;
+    setBusy(true);
+    try {
+      const chosen = proposals.filter((p) => accepted.has(p.key));
+      const r = await fetch("/api/import/digest/apply", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ proposals: chosen }),
+      });
+      if (!r.ok) throw new Error((await r.json().catch(() => null))?.detail ?? r.statusText);
+      const { results, backup } = (await r.json()) as {
+        results: { key: string; ok: boolean; id?: string; error?: string }[];
+        backup: string | null;
+      };
+      qc.invalidateQueries({ queryKey: ["campaign"] });
+      qc.invalidateQueries({ queryKey: ["party"] });
+      const failed = results.filter((x) => !x.ok);
+      const okCount = results.length - failed.length;
+      if (failed.length) {
+        toast.warning(`${okCount} applied, ${failed.length} failed: ${failed[0].error}`);
+      } else {
+        toast.success(`${okCount} change(s) written to the campaign` + (backup ? ` (backup: ${backup})` : ""));
+      }
+      setApplied(true);
+      const recap = results.find((x) => x.ok && x.id?.startsWith("recap-"));
+      if (recap?.id) navigate({ to: "/campaign", search: { open: recap.id } });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Apply failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <div className="max-w-[1600px] mx-auto px-4 md:px-8 py-6 space-y-6">
       <div>
@@ -45,91 +125,150 @@ function PostSession() {
           <div className="w-8 h-px bg-gold-gradient" /> After the table clears
         </div>
         <h1 className="font-display text-3xl md:text-4xl text-gold tracking-wider">Post-Session</h1>
-        <p className="text-sm text-muted-foreground mt-0.5">Let the AI listen so you can remember.</p>
+        <p className="text-sm text-muted-foreground mt-0.5">
+          Record and process the session with D&D Listener, then import its digest here.
+        </p>
       </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Panel title="Session Audio" icon={<FileAudio className="w-4 h-4" />} accent="purple">
-          <div className="ornate-frame p-6 text-center bg-black/20">
-            <div className="w-14 h-14 rounded-full bg-arcane grid place-items-center mx-auto shadow-arcane">
-              <Cloud className="w-7 h-7 text-primary-foreground" />
-            </div>
-            <div className="mt-3 font-display text-lg text-gold">session-13.m4a</div>
-            <div className="text-xs text-muted-foreground">42 min · recorded Sat 10:14 PM</div>
-            <div className="mt-4 flex items-center justify-center gap-2">
-              <Button size="sm" variant="outline" onClick={() => setPlaying((p) => !p)} className="gap-1.5">
-                {playing ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-                {playing ? "Pause" : "Play"}
-              </Button>
-              <Button size="sm" variant="ghost">Choose another…</Button>
-            </div>
-            <div className="mt-4 h-1.5 rounded-full bg-black/50 overflow-hidden">
-              <div className="h-full bg-arcane transition-all" style={{ width: playing ? "38%" : "0%" }} />
-            </div>
-          </div>
-          <Button
-            onClick={() => { setPhase("transcribing"); setTimeout(() => setPhase("done"), 1400); }}
-            disabled={phase === "transcribing"}
-            className="w-full mt-4 bg-arcane text-primary-foreground shadow-arcane gap-2 font-semibold tracking-wide h-11"
+        <Panel title="Session Digest" icon={<AudioLines className="w-4 h-4" />} accent="purple">
+          <div
+            className="ornate-frame p-6 text-center bg-black/20 cursor-pointer"
+            onClick={() => fileInput.current?.click()}
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={(e) => {
+              e.preventDefault();
+              const f = e.dataTransfer.files[0];
+              if (f) void loadFile(f);
+            }}
           >
-            <Sparkles className="w-4 h-4" />
-            {phase === "idle" && "Transcribe & Summarise"}
-            {phase === "transcribing" && "Listening to the tape…"}
-            {phase === "done" && "Re-run"}
-          </Button>
-        </Panel>
-        <Panel title="Transcript" icon={<Mic2 className="w-4 h-4" />}>
-          {phase === "idle" ? (
-            <div className="text-sm text-muted-foreground italic py-12 text-center">
-              The transcript will appear here after the AI listens.
+            <div className="w-14 h-14 rounded-full bg-arcane grid place-items-center mx-auto shadow-arcane">
+              <FileJson className="w-7 h-7 text-primary-foreground" />
             </div>
-          ) : phase === "transcribing" ? (
-            <div className="space-y-2 py-4">
-              {[0, 1, 2, 3, 4].map((i) => (
-                <div key={i} className="flex items-center gap-2 animate-pulse">
-                  <div className="w-10 h-3 rounded bg-secondary/60" />
-                  <div className="flex-1 h-3 rounded bg-secondary/40" />
+            <div className="mt-3 font-display text-lg text-gold">
+              {fileName || "Drop session-digest.json"}
+            </div>
+            <div className="text-xs text-muted-foreground">
+              {digest
+                ? [digest.createdAt?.slice(0, 10), digest.model && `digested by ${digest.model}`]
+                    .filter(Boolean)
+                    .join(" · ")
+                : "…or click to choose the file from your session folder"}
+            </div>
+            <input
+              ref={fileInput}
+              type="file"
+              accept=".json,application/json"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) void loadFile(f);
+                e.target.value = "";
+              }}
+            />
+          </div>
+
+          {digest && (
+            <div className="mt-4 space-y-3 text-sm">
+              {digest.summary && <p>{digest.summary}</p>}
+              <div className="flex flex-wrap gap-1.5">
+                <CountBadge icon={<Users className="w-3 h-3" />} label="NPCs" count={digest.npcs?.length} />
+                <CountBadge icon={<MapPin className="w-3 h-3" />} label="Locations" count={digest.locations?.length} />
+                <CountBadge icon={<Sparkles className="w-3 h-3" />} label="Threads" count={digest.plotThreads?.length} />
+                <CountBadge icon={<Gem className="w-3 h-3" />} label="Loot" count={digest.loot?.length} />
+                <CountBadge icon={<Quote className="w-3 h-3" />} label="Quotes" count={digest.quotes?.length} />
+              </div>
+              {digest.recap && (
+                <blockquote className="ornate-frame bg-black/20 p-3 italic text-muted-foreground">
+                  {digest.recap}
+                </blockquote>
+              )}
+              {!!digest.discarded?.length && (
+                <div className="flex items-start gap-2 text-xs text-muted-foreground">
+                  <ShieldCheck className="w-3.5 h-3.5 mt-0.5 shrink-0 text-gold-soft" />
+                  <span>
+                    {digest.discarded.length} item(s) were discarded by the listener's grounding check
+                    and are not part of this import.
+                  </span>
                 </div>
-              ))}
+              )}
+            </div>
+          )}
+        </Panel>
+
+        <Panel
+          title="Proposed Changes"
+          icon={<ScrollText className="w-4 h-4" />}
+          accent="emerald"
+          actions={
+            proposals && !applied ? (
+              <Button
+                size="sm"
+                onClick={apply}
+                disabled={busy || accepted.size === 0}
+                className="bg-gold-gradient text-primary-foreground gap-1.5 h-8"
+              >
+                <Save className="w-3.5 h-3.5" />
+                {busy ? "Writing…" : `Apply ${accepted.size} of ${proposals.length}`}
+              </Button>
+            ) : undefined
+          }
+        >
+          {!proposals ? (
+            <div className="text-sm text-muted-foreground italic py-12 text-center">
+              {busy ? "Reading the digest…" : "Proposals appear here once a digest is loaded — nothing is written without your review."}
+            </div>
+          ) : applied ? (
+            <div className="text-sm text-muted-foreground py-12 text-center">
+              Applied. The recap is in the campaign wiki — load another digest to import the next session.
             </div>
           ) : (
-            <pre className="text-xs whitespace-pre-wrap leading-relaxed max-h-96 overflow-y-auto text-muted-foreground font-mono">{sampleTranscript}</pre>
+            <ul className="space-y-2 max-h-[480px] overflow-y-auto pr-1">
+              {proposals.map((p) => (
+                <li key={p.key} className="ornate-frame bg-black/20 p-3 flex items-start gap-3">
+                  <Checkbox
+                    checked={accepted.has(p.key)}
+                    onCheckedChange={(on) => {
+                      setAccepted((prev) => {
+                        const next = new Set(prev);
+                        if (on === true) next.add(p.key);
+                        else next.delete(p.key);
+                        return next;
+                      });
+                    }}
+                    className="mt-0.5"
+                  />
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Badge
+                        variant="outline"
+                        className={
+                          "text-[9px] uppercase " +
+                          (p.action === "create"
+                            ? "border-[var(--emerald,#10b981)]/50 text-emerald-400"
+                            : "border-primary/40 text-gold-soft")
+                        }
+                      >
+                        {p.action === "create" ? "new" : "update"} {p.type}
+                      </Badge>
+                      <span className="font-medium text-sm">{p.name}</span>
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-0.5">{p.summary}</div>
+                  </div>
+                </li>
+              ))}
+            </ul>
           )}
         </Panel>
       </div>
-      <Panel
-        title="Structured Recap"
-        icon={<ScrollText className="w-4 h-4" />}
-        accent="emerald"
-        actions={<Button size="sm" className="bg-gold-gradient text-primary-foreground gap-1.5 h-8"><Save className="w-3.5 h-3.5" /> Save to Campaign</Button>}
-      >
-        {phase !== "done" ? (
-          <div className="text-sm text-muted-foreground italic py-12 text-center">
-            The AI-drafted recap will appear here after transcription.
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <RecapBlock title="Recap" icon={<ScrollText className="w-4 h-4" />} full><p>{recap.Recap}</p></RecapBlock>
-            <RecapBlock title="NPCs" icon={<Users className="w-4 h-4" />}><ul className="space-y-1 text-sm list-disc list-inside marker:text-gold-soft">{recap.NPCs.map((n) => <li key={n}>{n}</li>)}</ul></RecapBlock>
-            <RecapBlock title="Locations" icon={<MapPin className="w-4 h-4" />}><ul className="space-y-1 text-sm list-disc list-inside marker:text-gold-soft">{recap.Locations.map((n) => <li key={n}>{n}</li>)}</ul></RecapBlock>
-            <RecapBlock title="Quests" icon={<Sparkles className="w-4 h-4" />}><ul className="space-y-1 text-sm list-disc list-inside marker:text-gold-soft">{recap.Quests.map((n) => <li key={n}>{n}</li>)}</ul></RecapBlock>
-            <RecapBlock title="Loot" icon={<Gem className="w-4 h-4" />}><ul className="space-y-1 text-sm list-disc list-inside marker:text-gold-soft">{recap.Loot.map((n) => <li key={n}>{n}</li>)}</ul></RecapBlock>
-            <RecapBlock title="Cliffhanger" icon={<Sparkles className="w-4 h-4" />} full accent><p className="italic">{recap.Cliffhanger}</p></RecapBlock>
-          </div>
-        )}
-      </Panel>
     </div>
   );
 }
 
-function RecapBlock({ title, icon, children, full, accent }: { title: string; icon: React.ReactNode; children: React.ReactNode; full?: boolean; accent?: boolean }) {
+function CountBadge({ icon, label, count }: { icon: React.ReactNode; label: string; count?: number }) {
   return (
-    <div className={"ornate-frame p-4 bg-black/20 " + (full ? "md:col-span-2 " : "") + (accent ? "border-[var(--purple-arcane)]/50" : "")}>
-      <div className="flex items-center gap-2 mb-2">
-        <span className="text-gold">{icon}</span>
-        <h3 className="font-display text-sm uppercase tracking-widest text-gold">{title}</h3>
-        <Badge variant="outline" className="ml-auto text-[9px] border-primary/40 text-gold-soft">Editable</Badge>
-      </div>
-      <div className="text-sm">{children}</div>
-    </div>
+    <Badge variant="outline" className="gap-1 border-primary/30 text-muted-foreground">
+      {icon} {count ?? 0} {label}
+    </Badge>
   );
 }
