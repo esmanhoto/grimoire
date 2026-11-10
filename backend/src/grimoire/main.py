@@ -222,6 +222,48 @@ def resync_dndbeyond(req: DdbResync) -> dict:
         raise HTTPException(status_code=400, detail=str(e))
 
 
+@app.get("/api/export/context")
+def export_context() -> dict:
+    from .listener import build_context
+
+    return build_context(campaign.index())
+
+
+class DigestPreview(BaseModel):
+    digest: dict
+
+
+class DigestApply(BaseModel):
+    proposals: list[dict]
+
+
+@app.post("/api/import/digest/preview")
+def digest_preview(req: DigestPreview) -> dict:
+    from .listener import propose
+
+    return {"proposals": propose(req.digest, campaign)}
+
+
+@app.post("/api/import/digest/apply")
+def digest_apply(req: DigestApply) -> dict:
+    from .listener import backup_campaign
+
+    backup = backup_campaign(campaign.root) if req.proposals else None
+    results = []
+    for p in req.proposals:
+        try:
+            if p.get("action") == "create":
+                entity = campaign.create(p["type"], p["name"], p.get("fields") or {}, p.get("body") or "")
+            elif p.get("action") == "update" and p.get("id"):
+                entity = campaign.update(p["id"], fields=p.get("fields") or None, body=p.get("body"))
+            else:
+                raise CampaignError(f"malformed proposal '{p.get('key')}'")
+            results.append({"key": p.get("key"), "ok": True, "id": entity["id"]})
+        except (CampaignError, KeyError) as e:
+            results.append({"key": p.get("key"), "ok": False, "error": str(e)})
+    return {"results": results, "backup": backup}
+
+
 @app.post("/api/campaign")
 async def campaign_create(req: EntityCreate) -> dict:
     try:
