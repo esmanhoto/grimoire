@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import {
   BookOpen, Users, MapPin, Flag, Scroll, Plus, Link2, Pencil, Trash2, CornerUpLeft, User,
-  Search as SearchIcon, X,
+  Search as SearchIcon, X, AudioLines,
 } from "lucide-react";
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription,
@@ -93,6 +93,7 @@ function CampaignPage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2 justify-end">
+          <ExportContextButton />
           <ImportBeyondDialog onCreated={setOpenId} />
           <Button
             variant="outline"
@@ -194,6 +195,39 @@ function CampaignPage() {
         }}
       />
     </div>
+  );
+}
+
+/** Download campaign-context.json for D&D Listener: names and threads that
+ * steer its transcription vocabulary and entity reconciliation. */
+function ExportContextButton() {
+  const [busy, setBusy] = useState(false);
+  const run = async () => {
+    setBusy(true);
+    try {
+      const r = await fetch("/api/export/context");
+      if (!r.ok) throw new Error(r.statusText);
+      const blob = new Blob([JSON.stringify(await r.json(), null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "campaign-context.json";
+      a.click();
+      URL.revokeObjectURL(url);
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <Button
+      variant="outline"
+      className="gap-2 border-primary/40"
+      onClick={run}
+      disabled={busy}
+      title="Export campaign-context.json for D&D Listener (session recorder)"
+    >
+      <AudioLines className="w-4 h-4" /> Listener Context
+    </Button>
   );
 }
 
